@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Domain.Entities;
 using SupplyChainX.Domain.Exceptions;
-using SupplyChainX.Infrastructure.Persistence;
 
 namespace SupplyChainX.Application.Services;
 
 public class InventoryService : IInventoryService
 {
-    private readonly SupplyChainXDbContext _dbContext;
+    private readonly ISupplyChainXDbContext _dbContext;
 
-    public InventoryService(SupplyChainXDbContext dbContext)
+    public InventoryService(ISupplyChainXDbContext dbContext)
     {
         _dbContext = dbContext;
     }

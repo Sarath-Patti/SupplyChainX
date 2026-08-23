@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SupplyChainX.Application;
+using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Infrastructure;
 using SupplyChainX.Infrastructure.Persistence;
 using Xunit;
@@ -16,6 +17,7 @@ public class DependencyInjectionTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddLogging();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -29,6 +31,7 @@ public class DependencyInjectionTests
 
         // Assert
         provider.GetService<SupplyChainXDbContext>().Should().NotBeNull();
+        provider.GetService<ISupplyChainXDbContext>().Should().NotBeNull();
         provider.GetService<HealthCheckService>().Should().NotBeNull();
     }
 

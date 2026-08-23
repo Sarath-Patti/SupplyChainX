@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Infrastructure.Persistence;
 
 namespace SupplyChainX.Infrastructure;
@@ -27,6 +28,9 @@ public static class DependencyInjection
                     errorCodesToAdd: null);
             });
         });
+
+        // Register ISupplyChainXDbContext interface in DI container pointing to SupplyChainXDbContext
+        services.AddScoped<ISupplyChainXDbContext>(provider => provider.GetRequiredService<SupplyChainXDbContext>());
 
         // Register EF Core DbContext Health Check for PostgreSQL database connectivity
         services.AddHealthChecks()

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Application.Services;
+using SupplyChainX.Domain.Entities;
 using SupplyChainX.Domain.Exceptions;
 using SupplyChainX.Infrastructure.Persistence;
 using Xunit;

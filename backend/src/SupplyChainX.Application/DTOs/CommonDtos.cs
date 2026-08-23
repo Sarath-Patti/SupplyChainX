@@ -23,10 +23,10 @@ public record PaginationParams
 
 public record PagedResult<T>
 {
-    public IReadOnlyList<T> Items {; init; } = Array.Empty<T>();
-    public int Page {; init; }
-    public int PageSize {; init; }
-    public int TotalCount {; init; }
+    public IReadOnlyList<T> Items { get; init; } = Array.Empty<T>();
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalCount { get; init; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize < 1 ? 1 : PageSize));
     public bool HasPreviousPage => Page > 1;
     public bool HasNextPage => Page < TotalPages;

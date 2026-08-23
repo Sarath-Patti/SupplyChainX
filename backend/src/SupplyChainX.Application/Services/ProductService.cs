@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Domain.Entities;
 using SupplyChainX.Domain.Exceptions;
-using SupplyChainX.Infrastructure.Persistence;
 
 namespace SupplyChainX.Application.Services;
 
 public class ProductService : IProductService
 {
-    private readonly SupplyChainXDbContext _dbContext;
+    private readonly ISupplyChainXDbContext _dbContext;
 
-    public ProductService(SupplyChainXDbContext dbContext)
+    public ProductService(ISupplyChainXDbContext dbContext)
     {
         _dbContext = dbContext;
     }
