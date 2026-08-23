@@ -1,0 +1,43 @@
+<main class="init-container">
+  <div class="glass-card">
+    <header class="card-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+            <path d="m3.3 7 8.7 5 8.7-5"></path>
+            <path d="M12 22V12"></path>
+          </svg>
+        </div>
+        <h1 class="brand-title">{{ systemInfo.name }}</h1>
+        <span class="version-tag">{{ systemInfo.version }}</span>
+      </div>
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span class="status-text">{{ systemInfo.status }}</span>
+      </div>
+    </header>
+
+    <section class="card-body">
+      <div class="info-group">
+        <span class="info-label">Milestone Scope</span>
+        <p class="info-value">{{ systemInfo.milestone }}</p>
+      </div>
+
+      <div class="info-group">
+        <span class="info-label">Core Architecture Stack</span>
+        <ul class="tech-grid">
+          <li *ngFor="let tech of systemInfo.techStack" class="tech-chip">
+            {{ tech }}
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="card-footer">
+      <p class="footer-note">
+        Enterprise Inventory & Order Management Platform &bull; v0.1 Foundation Ready
+      </p>
+    </footer>
+  </div>
+</main>
