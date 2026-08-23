@@ -1,11 +1,11 @@
 # SupplyChainX Architecture Documentation
 
-**Version**: `v0.2.0`  
-**Milestone**: `v0.2 – Backend Core & PostgreSQL Integration`
+**Version**: `v0.3.0`  
+**Milestone**: `v0.3 – Product, Warehouse & Inventory Domain`
 
 ## High-Level Architectural Vision
 
-SupplyChainX is designed as an enterprise-grade, event-driven modular platform built for high reliability, scalability, and strict separation of concerns.
+SupplyChainX is implemented as a production-quality modular monolith with strict domain boundaries and layered separation of concerns.
 
 ```
 +-------------------------------------------------------------------+
@@ -15,23 +15,27 @@ SupplyChainX is designed as an enterprise-grade, event-driven modular platform b
                                   v
 +-------------------------------------------------------------------+
 |               ASP.NET Core Web API (SupplyChainX.Api)             |
-|    [Serilog Logging] [GlobalExceptionMiddleware] [/api/v1 Prefix] |
+|   [ProductsController] [WarehousesController] [InventoryController]|
+|   [Serilog Logging] [GlobalExceptionMiddleware] [/api/v1 Prefix]  |
 +-------------------------------------------------------------------+
                                   |
                                   v
 +-------------------------------------------------------------------+
-|     Application Core (SupplyChainX.Application / AddApplication)  |
+|               Application Core (SupplyChainX.Application)         |
+|   [ProductService] [WarehouseService] [InventoryService] [DTOs]   |
 +-------------------------------------------------------------------+
                                   |
                                   v
 +-------------------------------------------------------------------+
-|                Domain Model (SupplyChainX.Domain)                 |
+|               Domain Model (SupplyChainX.Domain)                  |
+|   [Product Entity] [Warehouse Entity] [Inventory Entity]          |
+|   [Domain Exceptions: DomainException, NotFoundException, etc.]   |
 +-------------------------------------------------------------------+
                                   ^
                                   | Implementations
 +-------------------------------------------------------------------+
-|   Infrastructure (SupplyChainX.Infrastructure / AddInfrastructure)|
-|           [EF Core DbContext] [DbContext Health Checks]           |
+|             Infrastructure (SupplyChainX.Infrastructure)          |
+|   [EF Core Configurations] [DbContext] [PostgreSQL Migrations]    |
 +-------------------------------------------------------------------+
               |                                       |
               v                                       v
@@ -40,23 +44,39 @@ SupplyChainX is designed as an enterprise-grade, event-driven modular platform b
 
 ---
 
-## v0.2 Infrastructure Capabilities
+## Domain & ERD Specification
 
-### 1. PostgreSQL & EF Core Integration
-- `SupplyChainXDbContext` is registered in `SupplyChainX.Infrastructure` using `Npgsql.EntityFrameworkCore.PostgreSQL`.
-- Connection string handling prioritizes `ConnectionStrings:DefaultConnection` and `POSTGRES_CONNECTION_STRING` environment variables.
-- Auto-retry strategy configured (`EnableRetryOnFailure`) for transient database connection errors.
-- No business entities, DbSets, or database migrations are included in v0.2.
+```
++-------------------+             +-----------------------+             +-------------------+
+|      Product      |             |       Inventory       |             |     Warehouse     |
++-------------------+             +-----------------------+             +-------------------+
+| PK Id (Guid)      |<--- 1:N --->| PK Id (Guid)          |<--- N:1 --->| PK Id (Guid)      |
+| Sku (Unique Index)|             | FK ProductId (Guid)   |             | Name (Index)      |
+| Name              |             | FK WarehouseId (Guid) |             | Location          |
+| Description       |             | AvailableQuantity     |             | IsActive          |
+| UnitPrice (18,2)  |             | ReservedQuantity      |             | CreatedAtUtc      |
+| IsActive          |             | MinimumStockThreshold |             | UpdatedAtUtc      |
+| CreatedAtUtc      |             | Version (Concurrency) |             +-------------------+
+| UpdatedAtUtc      |             | CreatedAtUtc          |
++-------------------+             | UpdatedAtUtc          |
+                                  +-----------------------+
+                                  | Unique Index:         |
+                                  | (ProductId,WarehouseId)|
+                                  +-----------------------+
+```
 
-### 2. Database Connectivity & Health Checks
-- Implemented `AddDbContextCheck<SupplyChainXDbContext>("database")` to dynamically verify PostgreSQL reachability.
-- Exposed via `GET /health` endpoint with non-sensitive JSON output.
+---
 
-### 3. Global Exception Handling & RFC 7807 ProblemDetails
-- Centralized `GlobalExceptionHandlingMiddleware` catches all unhandled request exceptions.
-- Formats responses using standard RFC 7807 `ProblemDetails` (`application/problem+json`).
-- Stack traces and detailed exception messages are hidden in production environments.
+## Inventory Stock Adjustment Rules
 
-### 4. API Routing Conventions
-- `ApiVersionRouteConvention` automatically prefixes business controller routes with `/api/v1`.
-- System endpoints like `/health` remain accessible at root level.
+Inventory stock adjustments are executed inside the `Inventory` domain aggregate root:
+
+1. **Stock Increase**: `AvailableQuantity += quantity`
+2. **Stock Decrease**: Validates `AvailableQuantity >= quantity` and `AvailableQuantity - quantity >= ReservedQuantity`.
+3. **Stock Reservation**: Validates `ReservedQuantity + quantity <= AvailableQuantity`.
+4. **Reservation Release**: Validates `ReservedQuantity >= quantity`.
+
+## Optimistic Concurrency Control
+
+- High-frequency stock adjustments on `Inventory` records enforce EF Core optimistic concurrency control via an explicit `uint Version` property configured as a concurrency token (`.IsConcurrencyToken()`).
+- Concurrent update collisions generate a `DbUpdateConcurrencyException`, caught globally to return `HTTP 409 Conflict`.

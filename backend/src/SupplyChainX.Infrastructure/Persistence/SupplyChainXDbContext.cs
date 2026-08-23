@@ -1,13 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using SupplyChainX.Domain.Entities;
 
 namespace SupplyChainX.Infrastructure.Persistence;
 
 /// <summary>
-/// Infrastructure EF Core DbContext baseline for SupplyChainX.
-/// Business DbSets and domain entity mappings will be configured in subsequent milestones.
+/// Infrastructure EF Core DbContext for SupplyChainX.
 /// </summary>
 public class SupplyChainXDbContext : DbContext
 {
+    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<Warehouse> Warehouses { get; set; } = null!;
+    public DbSet<Inventory> Inventories { get; set; } = null!;
+
     public SupplyChainXDbContext(DbContextOptions<SupplyChainXDbContext> options)
         : base(options)
     {
@@ -16,5 +20,6 @@ public class SupplyChainXDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SupplyChainXDbContext).Assembly);
     }
 }

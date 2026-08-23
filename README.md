@@ -1,37 +1,42 @@
 # SupplyChainX
 
-**Version**: `v0.2.0`  
-**Milestone**: `v0.2 – Backend Core & PostgreSQL Integration`
+**Version**: `v0.3.0`  
+**Milestone**: `v0.3 – Product, Warehouse & Inventory Domain`
 
 SupplyChainX is an enterprise inventory and order management platform built on a modern, modular, scalable event-driven architecture.
 
 ---
 
-## v0.2 Scope & Backend Capabilities
+## v0.3 Scope & Business Domain Capabilities
 
-Milestone **v0.2** establishes the backend infrastructure foundation:
+Milestone **v0.3** introduces the core business domain model for SupplyChainX:
 
-1. **Entity Framework Core & PostgreSQL Integration**:
-   - Registered `SupplyChainXDbContext` in `SupplyChainX.Infrastructure` via Npgsql driver.
-   - Connection strings are configuration and environment-variable driven (`ConnectionStrings:DefaultConnection` / `POSTGRES_CONNECTION_STRING`).
-   - Zero business entities, tables, or database migrations created.
+1. **Product Domain**:
+   - Management of product catalog (`Sku`, `Name`, `Description`, `UnitPrice`, `IsActive`).
+   - Domain invariants: Unique SKU (case-insensitive), non-empty name, non-negative unit price (`decimal(18,2)` precision).
 
-2. **Database Connectivity & Health Checks**:
-   - Integrated ASP.NET Core Health Checks framework with `AddDbContextCheck<SupplyChainXDbContext>("database")`.
-   - `/health` endpoint dynamically tests PostgreSQL reachability and reports structured status without exposing credentials.
+2. **Warehouse Domain**:
+   - Management of physical/logical distribution hubs (`Name`, `Location`, `IsActive`).
+   - Domain invariants: Required name and location.
 
-3. **Global Exception Handling**:
-   - Centralized `GlobalExceptionHandlingMiddleware` catching unhandled exceptions and returning standard RFC 7807 `ProblemDetails` (`application/problem+json`).
-   - Inner exception details and stack traces are suppressed in production environments.
+3. **Inventory Domain**:
+   - Multi-warehouse inventory tracking (`ProductId`, `WarehouseId`, `AvailableQuantity`, `ReservedQuantity`, `MinimumStockThreshold`).
+   - Business Rules:
+     - Stock increases update `AvailableQuantity`.
+     - Stock decreases enforce `AvailableQuantity >= requestedQuantity` and `AvailableQuantity - requestedQuantity >= ReservedQuantity`.
+     - Reservations enforce `ReservedQuantity <= AvailableQuantity`.
+     - Quantities cannot become negative.
+   - Foreign Keys: Product and Warehouse references with `DeleteBehavior.Restrict`.
+   - Unique Composite Index: `(ProductId, WarehouseId)`.
 
-4. **Structured Request Logging**:
-   - Configured Serilog HTTP request logging capturing method, path, HTTP status code, and execution time in milliseconds.
+4. **Optimistic Concurrency Strategy**:
+   - `Inventory` aggregate root maintains an explicit `uint Version` concurrency token configured via EF Core `.IsConcurrencyToken()`.
+   - Concurrent updates colliding on the same inventory record raise `DbUpdateConcurrencyException`, handled globally to return `HTTP 409 Conflict`.
 
-5. **API Routing Convention**:
-   - Enforced `/api/v1` route prefix convention for future business endpoints via `ApiVersionRouteConvention`, leaving system endpoints (`/health`) at root.
-
-6. **Modular Dependency Injection**:
-   - Encapsulated service registrations in `SupplyChainX.Infrastructure` (`AddInfrastructure()`) and `SupplyChainX.Application` (`AddApplication()`).
+5. **REST API Endpoints (`/api/v1`)**:
+   - **Products**: `GET /api/v1/products`, `GET /api/v1/products/{id}`, `POST /api/v1/products`, `PUT /api/v1/products/{id}`, `DELETE /api/v1/products/{id}`.
+   - **Warehouses**: `GET /api/v1/warehouses`, `GET /api/v1/warehouses/{id}`, `POST /api/v1/warehouses`, `PUT /api/v1/warehouses/{id}`, `DELETE /api/v1/warehouses/{id}`.
+   - **Inventory**: `GET /api/v1/inventory`, `GET /api/v1/inventory/{productId}/{warehouseId}`, `POST /api/v1/inventory/adjust`.
 
 ---
 
@@ -41,9 +46,9 @@ Milestone **v0.2** establishes the backend infrastructure foundation:
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture)
 - **Database**: PostgreSQL 16
 - **ORM**: Entity Framework Core 8 (`Npgsql.EntityFrameworkCore.PostgreSQL`)
-- **Messaging**: Apache Kafka (KRaft mode)
+- **Messaging**: Apache Kafka (KRaft mode - infrastructure container ready)
 - **Authentication**: JWT (Deferred)
-- **Testing**: xUnit (`FluentAssertions`, `NSubstitute`)
+- **Testing**: xUnit (`FluentAssertions`, `NSubstitute`, `EF Core InMemory`)
 - **Containerization**: Docker & Docker Compose
 - **Version Control**: Git
 
@@ -57,13 +62,13 @@ SupplyChainX/
 ├── backend/                 # ASP.NET Core Web API solution
 │   ├── SupplyChainX.sln
 │   └── src/
-│       ├── SupplyChainX.Api/          # Controllers, /api/v1 routing, Exception Middleware
-│       ├── SupplyChainX.Application/  # Application contracts & AddApplication() DI
-│       ├── SupplyChainX.Domain/       # Domain primitives (Entity, AggregateRoot)
-│       └── SupplyChainX.Infrastructure/# EF Core DbContext, Npgsql PostgreSQL, AddInfrastructure() DI
+│       ├── SupplyChainX.Api/          # Products, Warehouses, Inventory REST Controllers & Middleware
+│       ├── SupplyChainX.Application/  # Product, Warehouse, Inventory Services, DTOs & Validation
+│       ├── SupplyChainX.Domain/       # Product, Warehouse, Inventory Entities & Domain Exceptions
+│       └── SupplyChainX.Infrastructure/# DbContext, EF Core Configurations & PostgreSQL Migrations
 ├── messaging/               # Kafka schemas and event contract specifications
 ├── tests/                   # Automated test suites
-│   └── SupplyChainX.UnitTests/ # xUnit infrastructure unit tests (Middleware, DI)
+│   └── SupplyChainX.UnitTests/ # Product, Warehouse, Inventory Domain & Service Unit Tests
 ├── docs/                    # Architecture and developer documentation
 ├── scripts/                 # Environment and development scripts
 ├── infrastructure/          # Container orchestration (Docker Compose)
@@ -106,8 +111,8 @@ Response schema:
 {
   "status": "Healthy",
   "service": "SupplyChainX API",
-  "version": "v0.2.0",
-  "timestamp": "2026-08-23T20:32:00Z",
+  "version": "v0.3.0",
+  "timestamp": "2026-08-23T21:03:43Z",
   "checks": [
     {
       "name": "database",

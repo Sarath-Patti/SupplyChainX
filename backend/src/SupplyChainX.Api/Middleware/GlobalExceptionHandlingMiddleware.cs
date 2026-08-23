@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SupplyChainX.Domain.Exceptions;
 
 namespace SupplyChainX.Api.Middleware;
 
@@ -28,7 +30,7 @@ public class GlobalExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred during request processing. Path: {Path}, Method: {Method}",
+            _logger.LogError(ex, "Exception occurred during request processing. Path: {Path}, Method: {Method}",
                 context.Request.Path, context.Request.Method);
 
             await HandleExceptionAsync(context, ex);
@@ -38,24 +40,71 @@ public class GlobalExceptionHandlingMiddleware
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/problem+json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+        var isDbConstraintViolation = exception is DbUpdateException dbUpdateEx &&
+            (dbUpdateEx.InnerException?.Message.Contains("foreign key", StringComparison.OrdinalIgnoreCase) == true ||
+             dbUpdateEx.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
+             dbUpdateEx.InnerException?.Message.Contains("violates", StringComparison.OrdinalIgnoreCase) == true ||
+             dbUpdateEx.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true);
+
+        var (statusCode, title, type) = exception switch
+        {
+            DomainException => (
+                HttpStatusCode.BadRequest,
+                "Domain Rule Violation",
+                "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+            ),
+            NotFoundException => (
+                HttpStatusCode.NotFound,
+                "Resource Not Found",
+                "https://tools.ietf.org/html/rfc7231#section-6.5.4"
+            ),
+            ConflictException => (
+                HttpStatusCode.Conflict,
+                "Resource Conflict",
+                "https://tools.ietf.org/html/rfc7231#section-6.5.8"
+            ),
+            DbUpdateConcurrencyException => (
+                HttpStatusCode.Conflict,
+                "Concurrent Modification Conflict",
+                "https://tools.ietf.org/html/rfc7231#section-6.5.8"
+            ),
+            DbUpdateException when isDbConstraintViolation => (
+                HttpStatusCode.Conflict,
+                "Database Constraint Conflict",
+                "https://tools.ietf.org/html/rfc7231#section-6.5.8"
+            ),
+            _ => (
+                HttpStatusCode.InternalServerError,
+                "An unexpected error occurred while processing your request.",
+                "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            )
+        };
+
+        context.Response.StatusCode = (int)statusCode;
+
+        var detailMessage = exception switch
+        {
+            DomainException de => de.Message,
+            NotFoundException nfe => nfe.Message,
+            ConflictException ce => ce.Message,
+            DbUpdateConcurrencyException => "The requested resource was updated or modified concurrently by another transaction. Please retry your request.",
+            DbUpdateException when isDbConstraintViolation => "The request could not be completed due to a database constraint violation.",
+            _ => _env.IsDevelopment() ? exception.Message : "A server error occurred. Please contact support if the issue persists."
+        };
 
         var problemDetails = new ProblemDetails
         {
             Status = context.Response.StatusCode,
-            Title = "An unexpected error occurred while processing your request.",
-            Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+            Title = title,
+            Type = type,
+            Detail = detailMessage,
             Instance = context.Request.Path
         };
 
-        if (_env.IsDevelopment())
+        if (_env.IsDevelopment() && statusCode == HttpStatusCode.InternalServerError)
         {
-            problemDetails.Detail = exception.Message;
             problemDetails.Extensions["stackTrace"] = exception.StackTrace;
-        }
-        else
-        {
-            problemDetails.Detail = "A server error occurred. Please contact support if the issue persists.";
         }
 
         var options = new JsonSerializerOptions
