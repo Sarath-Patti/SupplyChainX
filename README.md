@@ -1,18 +1,37 @@
 # SupplyChainX
 
-**Version**: `v0.1.0`  
-**Milestone**: `v0.1 – Project Foundation`
+**Version**: `v0.2.0`  
+**Milestone**: `v0.2 – Backend Core & PostgreSQL Integration`
 
 SupplyChainX is an enterprise inventory and order management platform built on a modern, modular, scalable event-driven architecture.
 
 ---
 
-## v0.1 Scope & Foundation
+## v0.2 Scope & Backend Capabilities
 
-Milestone **v0.1** establishes the core technology stack, project directory hierarchy, containerization infrastructure, backend ASP.NET Core solution layout, and frontend Angular initialization application.
+Milestone **v0.2** establishes the backend infrastructure foundation:
 
-> [!NOTE]
-> Business functionality (inventory management, warehouse routing, order execution, shipments, authentication screens, domain entities, and database tables) is intentionally deferred to subsequent milestones.
+1. **Entity Framework Core & PostgreSQL Integration**:
+   - Registered `SupplyChainXDbContext` in `SupplyChainX.Infrastructure` via Npgsql driver.
+   - Connection strings are configuration and environment-variable driven (`ConnectionStrings:DefaultConnection` / `POSTGRES_CONNECTION_STRING`).
+   - Zero business entities, tables, or database migrations created.
+
+2. **Database Connectivity & Health Checks**:
+   - Integrated ASP.NET Core Health Checks framework with `AddDbContextCheck<SupplyChainXDbContext>("database")`.
+   - `/health` endpoint dynamically tests PostgreSQL reachability and reports structured status without exposing credentials.
+
+3. **Global Exception Handling**:
+   - Centralized `GlobalExceptionHandlingMiddleware` catching unhandled exceptions and returning standard RFC 7807 `ProblemDetails` (`application/problem+json`).
+   - Inner exception details and stack traces are suppressed in production environments.
+
+4. **Structured Request Logging**:
+   - Configured Serilog HTTP request logging capturing method, path, HTTP status code, and execution time in milliseconds.
+
+5. **API Routing Convention**:
+   - Enforced `/api/v1` route prefix convention for future business endpoints via `ApiVersionRouteConvention`, leaving system endpoints (`/health`) at root.
+
+6. **Modular Dependency Injection**:
+   - Encapsulated service registrations in `SupplyChainX.Infrastructure` (`AddInfrastructure()`) and `SupplyChainX.Application` (`AddApplication()`).
 
 ---
 
@@ -21,10 +40,10 @@ Milestone **v0.1** establishes the core technology stack, project directory hier
 - **Backend**: C# 12 / .NET 8 ASP.NET Core Web API
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture)
 - **Database**: PostgreSQL 16
-- **ORM**: Entity Framework Core 8
+- **ORM**: Entity Framework Core 8 (`Npgsql.EntityFrameworkCore.PostgreSQL`)
 - **Messaging**: Apache Kafka (KRaft mode)
-- **Authentication**: JWT (Infrastructure foundation ready)
-- **Testing**: xUnit
+- **Authentication**: JWT (Deferred)
+- **Testing**: xUnit (`FluentAssertions`, `NSubstitute`)
 - **Containerization**: Docker & Docker Compose
 - **Version Control**: Git
 
@@ -34,25 +53,17 @@ Milestone **v0.1** establishes the core technology stack, project directory hier
 
 ```
 SupplyChainX/
-├── frontend/                # Angular SPA foundation
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/        # Core singletons and initialization logic
-│   │   │   └── shared/      # Shared components and primitives
-│   │   └── assets/
-│   ├── angular.json
-│   ├── package.json
-│   └── tsconfig.json
+├── frontend/                # Angular client baseline (v0.1)
 ├── backend/                 # ASP.NET Core Web API solution
 │   ├── SupplyChainX.sln
 │   └── src/
-│       ├── SupplyChainX.Api/          # Web API host & health endpoints
-│       ├── SupplyChainX.Application/  # Application service interfaces & result abstractions
-│       ├── SupplyChainX.Domain/       # Core domain primitives (Entity, AggregateRoot)
-│       └── SupplyChainX.Infrastructure/# DbContext baseline & external integration abstractions
+│       ├── SupplyChainX.Api/          # Controllers, /api/v1 routing, Exception Middleware
+│       ├── SupplyChainX.Application/  # Application contracts & AddApplication() DI
+│       ├── SupplyChainX.Domain/       # Domain primitives (Entity, AggregateRoot)
+│       └── SupplyChainX.Infrastructure/# EF Core DbContext, Npgsql PostgreSQL, AddInfrastructure() DI
 ├── messaging/               # Kafka schemas and event contract specifications
 ├── tests/                   # Automated test suites
-│   └── SupplyChainX.UnitTests/ # xUnit backend unit test baseline
+│   └── SupplyChainX.UnitTests/ # xUnit infrastructure unit tests (Middleware, DI)
 ├── docs/                    # Architecture and developer documentation
 ├── scripts/                 # Environment and development scripts
 ├── infrastructure/          # Container orchestration (Docker Compose)
@@ -83,7 +94,7 @@ docker compose up -d
 
 ## Verification & Health Check
 
-The backend ASP.NET Core API provides a minimal startup status endpoint at:
+The backend ASP.NET Core API provides a health check status endpoint at:
 
 ```
 GET /health
@@ -95,7 +106,14 @@ Response schema:
 {
   "status": "Healthy",
   "service": "SupplyChainX API",
-  "version": "v0.1.0",
-  "timestamp": "2026-08-23T18:35:26Z"
+  "version": "v0.2.0",
+  "timestamp": "2026-08-23T20:32:00Z",
+  "checks": [
+    {
+      "name": "database",
+      "status": "Healthy",
+      "description": "SupplyChainXDbContext reachability check"
+    }
+  ]
 }
 ```

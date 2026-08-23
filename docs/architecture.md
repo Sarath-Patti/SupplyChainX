@@ -1,6 +1,7 @@
 # SupplyChainX Architecture Documentation
 
-**Version**: `v0.1.0`
+**Version**: `v0.2.0`  
+**Milestone**: `v0.2 – Backend Core & PostgreSQL Integration`
 
 ## High-Level Architectural Vision
 
@@ -10,15 +11,16 @@ SupplyChainX is designed as an enterprise-grade, event-driven modular platform b
 +-------------------------------------------------------------------+
 |                     Angular Client (Frontend)                     |
 +-------------------------------------------------------------------+
-                                  | HTTP / REST API
+                                  | HTTP / REST API (/api/v1)
                                   v
 +-------------------------------------------------------------------+
 |               ASP.NET Core Web API (SupplyChainX.Api)             |
+|    [Serilog Logging] [GlobalExceptionMiddleware] [/api/v1 Prefix] |
 +-------------------------------------------------------------------+
                                   |
                                   v
 +-------------------------------------------------------------------+
-|              Application Core (SupplyChainX.Application)          |
+|     Application Core (SupplyChainX.Application / AddApplication)  |
 +-------------------------------------------------------------------+
                                   |
                                   v
@@ -28,23 +30,33 @@ SupplyChainX is designed as an enterprise-grade, event-driven modular platform b
                                   ^
                                   | Implementations
 +-------------------------------------------------------------------+
-|             Infrastructure (SupplyChainX.Infrastructure)          |
+|   Infrastructure (SupplyChainX.Infrastructure / AddInfrastructure)|
+|           [EF Core DbContext] [DbContext Health Checks]           |
 +-------------------------------------------------------------------+
               |                                       |
               v                                       v
       PostgreSQL 16 DB                       Apache Kafka Broker
 ```
 
-## Layers & Module Boundaries
-
-1. **Domain (`SupplyChainX.Domain`)**: Core enterprise primitives (`Entity<T>`, `IAggregateRoot`). Contains zero external dependencies.
-2. **Application (`SupplyChainX.Application`)**: Core application services, interfaces, DTOs, and result types.
-3. **Infrastructure (`SupplyChainX.Infrastructure`)**: Persistence implementations (EF Core DbContext), message broker abstraction, and external integration adapters.
-4. **API (`SupplyChainX.Api`)**: ASP.NET Core host, HTTP middleware, controllers, logging, and OpenAPI specification.
-
 ---
 
-## Infrastructure Services
+## v0.2 Infrastructure Capabilities
 
-- **PostgreSQL 16**: Primary relational store for transactional data.
-- **Apache Kafka**: Distributed event bus for async messaging and domain event publishing.
+### 1. PostgreSQL & EF Core Integration
+- `SupplyChainXDbContext` is registered in `SupplyChainX.Infrastructure` using `Npgsql.EntityFrameworkCore.PostgreSQL`.
+- Connection string handling prioritizes `ConnectionStrings:DefaultConnection` and `POSTGRES_CONNECTION_STRING` environment variables.
+- Auto-retry strategy configured (`EnableRetryOnFailure`) for transient database connection errors.
+- No business entities, DbSets, or database migrations are included in v0.2.
+
+### 2. Database Connectivity & Health Checks
+- Implemented `AddDbContextCheck<SupplyChainXDbContext>("database")` to dynamically verify PostgreSQL reachability.
+- Exposed via `GET /health` endpoint with non-sensitive JSON output.
+
+### 3. Global Exception Handling & RFC 7807 ProblemDetails
+- Centralized `GlobalExceptionHandlingMiddleware` catches all unhandled request exceptions.
+- Formats responses using standard RFC 7807 `ProblemDetails` (`application/problem+json`).
+- Stack traces and detailed exception messages are hidden in production environments.
+
+### 4. API Routing Conventions
+- `ApiVersionRouteConvention` automatically prefixes business controller routes with `/api/v1`.
+- System endpoints like `/health` remain accessible at root level.
