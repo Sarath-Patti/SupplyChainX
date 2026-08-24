@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SupplyChainX.Application.Common.Configuration;
 using SupplyChainX.Application.Common.Interfaces;
+using SupplyChainX.Infrastructure.Health;
 using SupplyChainX.Infrastructure.Messaging.Kafka;
 using SupplyChainX.Infrastructure.Persistence;
 using SupplyChainX.Infrastructure.Services;
@@ -36,13 +37,19 @@ public static class DependencyInjection
         services.AddScoped<ISupplyChainXDbContext>(provider => provider.GetRequiredService<SupplyChainXDbContext>());
         services.AddScoped<IIdempotencyService, IdempotencyService>();
 
-        // 2. Health Checks
+        // 2. Status & Observability Services
+        services.AddSingleton<IKafkaConsumerStatusService, KafkaConsumerStatusService>();
+
+        // 3. Health Checks
         services.AddHealthChecks()
             .AddDbContextCheck<SupplyChainXDbContext>(
                 name: "database",
-                tags: new[] { "db", "postgresql" });
+                tags: new[] { "db", "postgresql", "ready" })
+            .AddCheck<KafkaHealthCheck>(
+                name: "kafka",
+                tags: new[] { "messaging", "kafka", "ready" });
 
-        // 3. Kafka Producer Messaging Configuration
+        // 4. Kafka Producer Messaging Configuration
         var bootstrapServers = configuration["Kafka:BootstrapServers"]
             ?? Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS")
             ?? "localhost:9092";
@@ -67,7 +74,7 @@ public static class DependencyInjection
 
         services.AddScoped<IEventPublisher, KafkaEventPublisher>();
 
-        // 4. Kafka Consumer Hosted Service
+        // 5. Kafka Consumer Hosted Service
         services.AddHostedService<KafkaConsumerBackgroundService>();
 
         return services;

@@ -15,11 +15,13 @@ namespace SupplyChainX.Infrastructure.Messaging.Kafka;
 /// Long-running hosted BackgroundService that subscribes to Kafka topics,
 /// provisions primary and DLQ topics on startup, despatches events to Application handlers,
 /// enforces PostgreSQL idempotency, handles retries with backoff for transient failures,
-/// publishes permanently failing messages to DLQ topics, and executes manual offset commits.
+/// publishes permanently failing messages to DLQ topics, records operational metrics,
+/// and executes manual offset commits.
 /// </summary>
 public class KafkaConsumerBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IKafkaConsumerStatusService _statusService;
     private readonly KafkaConsumerOptions _consumerOptions;
     private readonly KafkaTopicOptions _topicOptions;
     private readonly string _bootstrapServers;
@@ -33,12 +35,14 @@ public class KafkaConsumerBackgroundService : BackgroundService
 
     public KafkaConsumerBackgroundService(
         IServiceScopeFactory scopeFactory,
+        IKafkaConsumerStatusService statusService,
         IOptions<KafkaConsumerOptions> consumerOptions,
         IOptions<KafkaTopicOptions> topicOptions,
         Microsoft.Extensions.Configuration.IConfiguration configuration,
         ILogger<KafkaConsumerBackgroundService> logger)
     {
         _scopeFactory = scopeFactory;
+        _statusService = statusService;
         _consumerOptions = consumerOptions.Value;
         _topicOptions = topicOptions.Value;
         _bootstrapServers = configuration["Kafka:BootstrapServers"]
@@ -81,6 +85,7 @@ public class KafkaConsumerBackgroundService : BackgroundService
         _logger.LogInformation("KafkaConsumerBackgroundService starting. Subscribing to topics: [{Topics}] with GroupId: {GroupId}",
             string.Join(", ", topics), _consumerOptions.ConsumerGroupId);
 
+        _statusService.SetConsumerState(true, _consumerOptions.ConsumerGroupId, topics);
         consumer.Subscribe(topics);
 
         try
@@ -99,7 +104,7 @@ public class KafkaConsumerBackgroundService : BackgroundService
                 }
                 catch (ConsumeException ex)
                 {
-                    _logger.LogError(ex, "Error consuming message from Kafka: {Reason}", ex.Error.Reason);
+                    _logger.LogError(ex, "Error consuming message from Kafka on {BootstrapServers}: {Reason}", _bootstrapServers, ex.Error.Reason);
                     Thread.Sleep(_consumerOptions.RetryDelayMs);
                     continue;
                 }
@@ -113,8 +118,8 @@ public class KafkaConsumerBackgroundService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[ConsumerRecovery] Unhandled exception processing message from topic {Topic} [Offset {Offset}]. Committing offset to resume queue.",
-                        consumeResult.Topic, consumeResult.Offset.Value);
+                    _logger.LogError(ex, "[ConsumerRecovery] Unhandled exception processing message from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Committing offset to resume queue.",
+                        consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
                     try
                     {
                         consumer.Commit(consumeResult);
@@ -136,6 +141,7 @@ public class KafkaConsumerBackgroundService : BackgroundService
         }
         finally
         {
+            _statusService.SetConsumerState(false, _consumerOptions.ConsumerGroupId, topics);
             try
             {
                 consumer.Close();
@@ -191,8 +197,8 @@ public class KafkaConsumerBackgroundService : BackgroundService
         var rawJson = consumeResult.Message.Value;
         if (string.IsNullOrWhiteSpace(rawJson))
         {
-            _logger.LogWarning("Skipping empty message payload from topic {Topic} [Offset {Offset}]",
-                consumeResult.Topic, consumeResult.Offset.Value);
+            _logger.LogWarning("Skipping empty message payload from topic {Topic} [Partition {Partition} @ Offset {Offset}]",
+                consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
             consumer.Commit(consumeResult);
             return;
         }
@@ -207,8 +213,9 @@ public class KafkaConsumerBackgroundService : BackgroundService
 
             if (!root.TryGetProperty("eventId", out var eventIdElement) || !eventIdElement.TryGetGuid(out eventId))
             {
-                _logger.LogError("[MalformedEventSkipped] Malformed event payload missing 'eventId' from topic {Topic} [Offset {Offset}]. Raw payload: {Raw}",
-                    consumeResult.Topic, consumeResult.Offset.Value, rawJson);
+                _logger.LogError("[MalformedEventSkipped] Malformed event payload missing 'eventId' from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Raw payload: {RawPayload}",
+                    consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value, rawJson);
+                _statusService.RecordMalformed(consumeResult.Topic, consumeResult.Offset.Value);
                 consumer.Commit(consumeResult);
                 return;
             }
@@ -219,11 +226,14 @@ public class KafkaConsumerBackgroundService : BackgroundService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "[MalformedEventSkipped] Malformed non-JSON event payload from topic {Topic} [Offset {Offset}]. Raw payload: {Raw}",
-                consumeResult.Topic, consumeResult.Offset.Value, rawJson);
+            _logger.LogError(ex, "[MalformedEventSkipped] Malformed non-JSON event payload from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Raw payload: {RawPayload}",
+                consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value, rawJson);
+            _statusService.RecordMalformed(consumeResult.Topic, consumeResult.Offset.Value);
             consumer.Commit(consumeResult);
             return;
         }
+
+        _statusService.RecordConsumed(consumeResult.Topic, eventId, eventType);
 
         using var scope = _scopeFactory.CreateScope();
         var idempotencyService = scope.ServiceProvider.GetRequiredService<IIdempotencyService>();
@@ -231,26 +241,30 @@ public class KafkaConsumerBackgroundService : BackgroundService
         var alreadyProcessed = idempotencyService.HasBeenProcessedAsync(eventId, stoppingToken).GetAwaiter().GetResult();
         if (alreadyProcessed)
         {
-            _logger.LogWarning("[DuplicateEventSkipped] Event {EventId} ({EventType}) was already processed. Committing offset.",
-                eventId, eventType);
+            _logger.LogWarning("[DuplicateEventSkipped] Event {EventId} ({EventType}) was already processed from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Committing offset.",
+                eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+            _statusService.RecordDuplicate(consumeResult.Topic, eventId, eventType);
             consumer.Commit(consumeResult);
             return;
         }
 
         var (handledSuccessfully, lastException) = DispatchEventWithRetry(
-            scope.ServiceProvider, consumeResult.Topic, eventId, eventType, rawJson, stoppingToken);
+            scope.ServiceProvider, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value, eventId, eventType, rawJson, stoppingToken);
 
         if (handledSuccessfully)
         {
             idempotencyService.MarkAsProcessedAsync(eventId, eventType, stoppingToken).GetAwaiter().GetResult();
             consumer.Commit(consumeResult);
-            _logger.LogInformation("Successfully processed and committed offset for Event {EventId} ({EventType})",
-                eventId, eventType);
+            _statusService.RecordProcessed(consumeResult.Topic, eventId, eventType);
+            _logger.LogInformation("Successfully processed and committed offset for Event {EventId} ({EventType}) on topic {Topic} [Partition {Partition} @ Offset {Offset}]",
+                eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
         }
         else
         {
-            _logger.LogError("[ProcessingFailed] Processing event {EventId} ({EventType}) failed after {MaxAttempts} retries on topic {Topic}. Publishing to DLQ...",
-                eventId, eventType, _consumerOptions.MaxRetryAttempts, consumeResult.Topic);
+            _logger.LogError("[ProcessingFailed] Processing event {EventId} ({EventType}) failed after {MaxRetryAttempts} retries on topic {Topic} [Partition {Partition} @ Offset {Offset}]. Publishing to DLQ...",
+                eventId, eventType, _consumerOptions.MaxRetryAttempts, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+
+            _statusService.RecordFailure(consumeResult.Topic, eventId, eventType, lastException ?? new InvalidOperationException("Processing failed after retries"));
 
             var dlqPublished = PublishToDlq(
                 scope.ServiceProvider, consumeResult, eventId, eventType, rawJson, lastException, stoppingToken);
@@ -258,8 +272,8 @@ public class KafkaConsumerBackgroundService : BackgroundService
             if (dlqPublished)
             {
                 consumer.Commit(consumeResult);
-                _logger.LogInformation("[DlqCommitted] Successfully published Event {EventId} ({EventType}) to DLQ and committed offset.",
-                    eventId, eventType);
+                _logger.LogInformation("[DlqCommitted] Successfully published Event {EventId} ({EventType}) to DLQ and committed offset on topic {Topic} [Partition {Partition} @ Offset {Offset}].",
+                    eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
             }
             else
             {
@@ -272,6 +286,8 @@ public class KafkaConsumerBackgroundService : BackgroundService
     private (bool Success, Exception? LastException) DispatchEventWithRetry(
         IServiceProvider serviceProvider,
         string topic,
+        int partition,
+        long offset,
         Guid eventId,
         string eventType,
         string rawJson,
@@ -291,9 +307,10 @@ public class KafkaConsumerBackgroundService : BackgroundService
             catch (Exception ex)
             {
                 lastException = ex;
+                _statusService.RecordRetry(topic, eventId, eventType, attempts);
 
-                _logger.LogWarning(ex, "[RetryAttempt] Retry {Attempt}/{MaxAttempts} for Event {EventId} ({EventType}) on topic {Topic}. Error: {Message}",
-                    attempts, _consumerOptions.MaxRetryAttempts, eventId, eventType, topic, ex.Message);
+                _logger.LogWarning(ex, "[RetryAttempt] Attempt {RetryAttempt}/{MaxRetryAttempts} for Event {EventId} ({EventType}) on topic {Topic} [Partition {Partition} @ Offset {Offset}]. Error: {ErrorMessage}",
+                    attempts, _consumerOptions.MaxRetryAttempts, eventId, eventType, topic, partition, offset, ex.Message);
 
                 if (attempts < _consumerOptions.MaxRetryAttempts && !stoppingToken.IsCancellationRequested)
                 {
@@ -342,13 +359,17 @@ public class KafkaConsumerBackgroundService : BackgroundService
                 headers,
                 stoppingToken).GetAwaiter().GetResult();
 
-            _logger.LogInformation("[DlqPublished] Event {EventId} ({EventType}) published to DLQ topic {DlqTopic} [Partition {Partition} @ Offset {Offset}] after {Attempts} retries. Reason: {Reason}",
+            _statusService.RecordDlqSuccess(consumeResult.Topic, dlqTopic, eventId, eventType);
+
+            _logger.LogInformation("[DlqPublished] Event {EventId} ({EventType}) published to DLQ topic {DlqTopic} [Partition {Partition} @ Offset {Offset}] after {RetryAttempt} retries. Reason: {Reason}",
                 eventId, eventType, dlqTopic, consumeResult.Partition.Value, consumeResult.Offset.Value, _consumerOptions.MaxRetryAttempts, lastException?.Message);
 
             return true;
         }
         catch (Exception ex)
         {
+            _statusService.RecordDlqFailure(consumeResult.Topic, dlqTopic, eventId, eventType, ex);
+
             _logger.LogError(ex, "Failed to publish Event {EventId} ({EventType}) to DLQ topic {DlqTopic}",
                 eventId, eventType, dlqTopic);
             return false;

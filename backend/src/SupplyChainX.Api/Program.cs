@@ -32,8 +32,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
         Title = "SupplyChainX API",
-        Version = "v0.2.0",
-        Description = "Enterprise Inventory & Order Management Platform API (v0.2 Core Backend & PostgreSQL)"
+        Version = "v0.7.0",
+        Description = "Enterprise Inventory & Order Management Platform API (v0.7 Observability & Operational Monitoring)"
     });
 });
 
@@ -50,6 +50,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Correlation ID Tracing Middleware
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 // Configure Centralized Exception Handling Middleware
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
@@ -59,14 +62,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v0.2.0");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v0.7.0");
     });
 }
 
-// Structured HTTP Request Logging
+// Structured HTTP Request Logging with Serilog
 app.UseSerilogRequestLogging(options =>
 {
-    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms [CorrelationId: {CorrelationId}]";
 });
 
 app.UseCors("AllowFrontend");

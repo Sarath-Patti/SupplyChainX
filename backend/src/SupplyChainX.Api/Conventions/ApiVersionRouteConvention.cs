@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 namespace SupplyChainX.Api.Conventions;
 
 /// <summary>
-/// Applies '/api/v1' route prefix convention to future business controllers while keeping system endpoints (/health) at root.
+/// Applies '/api/v1' route prefix convention to domain resource controllers while keeping system endpoints (/health, /api/v1/metrics) at explicit routes.
 /// </summary>
 public class ApiVersionRouteConvention : IApplicationModelConvention
 {
@@ -18,8 +18,9 @@ public class ApiVersionRouteConvention : IApplicationModelConvention
     {
         foreach (var controller in application.Controllers)
         {
-            // Skip health check system controller
-            if (controller.ControllerName.Equals("Health", StringComparison.OrdinalIgnoreCase))
+            // Skip health check and metrics system controllers which define absolute routes
+            if (controller.ControllerName.Equals("Health", StringComparison.OrdinalIgnoreCase) ||
+                controller.ControllerName.Equals("Metrics", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }

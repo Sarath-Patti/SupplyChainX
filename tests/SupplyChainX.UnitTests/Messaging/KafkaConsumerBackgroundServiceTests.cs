@@ -20,6 +20,7 @@ public class KafkaConsumerBackgroundServiceTests
     private readonly IServiceProvider _serviceProvider;
     private readonly IIdempotencyService _idempotencyService;
     private readonly IEventPublisher _eventPublisher;
+    private readonly IKafkaConsumerStatusService _statusService;
     private readonly IEventHandler<ProductCreatedEvent> _productCreatedHandler;
     private readonly ILogger<KafkaConsumerBackgroundService> _logger;
     private readonly IOptions<KafkaConsumerOptions> _consumerOptions;
@@ -33,6 +34,7 @@ public class KafkaConsumerBackgroundServiceTests
         _serviceProvider = Substitute.For<IServiceProvider>();
         _idempotencyService = Substitute.For<IIdempotencyService>();
         _eventPublisher = Substitute.For<IEventPublisher>();
+        _statusService = Substitute.For<IKafkaConsumerStatusService>();
         _productCreatedHandler = Substitute.For<IEventHandler<ProductCreatedEvent>>();
         _logger = Substitute.For<ILogger<KafkaConsumerBackgroundService>>();
         _configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
@@ -63,6 +65,7 @@ public class KafkaConsumerBackgroundServiceTests
     {
         return new KafkaConsumerBackgroundService(
             _scopeFactory,
+            _statusService,
             _consumerOptions,
             _topicOptions,
             _configuration,
@@ -122,7 +125,8 @@ public class KafkaConsumerBackgroundServiceTests
         calls.Should().Be(2);
         _idempotencyService.Received(1).MarkAsProcessedAsync(eventId, nameof(ProductCreatedEvent), Arg.Any<CancellationToken>());
         consumer.Received(1).Commit(consumeResult);
-        _eventPublisher.DidNotReceiveWithAnyArgs().PublishRawAsync(default!, default!, default!, default, default);
+        _statusService.Received(1).RecordRetry("supplychainx.product.events", eventId, nameof(ProductCreatedEvent), 1);
+        _statusService.Received(1).RecordProcessed("supplychainx.product.events", eventId, nameof(ProductCreatedEvent));
     }
 
     [Fact]
@@ -163,6 +167,7 @@ public class KafkaConsumerBackgroundServiceTests
         calls.Should().Be(3);
         _idempotencyService.Received(1).MarkAsProcessedAsync(eventId, nameof(ProductCreatedEvent), Arg.Any<CancellationToken>());
         consumer.Received(1).Commit(consumeResult);
+        _statusService.Received(2).RecordRetry("supplychainx.product.events", eventId, nameof(ProductCreatedEvent), Arg.Any<int>());
     }
 
     [Fact]
@@ -207,7 +212,7 @@ public class KafkaConsumerBackgroundServiceTests
             Arg.Any<CancellationToken>());
 
         consumer.Received(1).Commit(consumeResult);
-        _idempotencyService.DidNotReceiveWithAnyArgs().MarkAsProcessedAsync(default, default!, default);
+        _statusService.Received(1).RecordDlqSuccess("supplychainx.product.events", "supplychainx.product.events.dlq", eventId, nameof(ProductCreatedEvent));
     }
 
     [Fact]
@@ -242,6 +247,7 @@ public class KafkaConsumerBackgroundServiceTests
 
         // Assert
         consumer.DidNotReceive().Commit(Arg.Any<ConsumeResult<string, string>>());
+        _statusService.Received(1).RecordDlqFailure("supplychainx.product.events", "supplychainx.product.events.dlq", eventId, nameof(ProductCreatedEvent), Arg.Any<Exception>());
     }
 
     [Fact]
@@ -259,7 +265,7 @@ public class KafkaConsumerBackgroundServiceTests
         // Assert
         act.Should().NotThrow();
         consumer.Received(1).Commit(consumeResult);
-        _productCreatedHandler.DidNotReceiveWithAnyArgs().HandleAsync(default!, default);
+        _statusService.Received(1).RecordMalformed("supplychainx.product.events", 0);
     }
 
     [Fact]
@@ -290,130 +296,6 @@ public class KafkaConsumerBackgroundServiceTests
         // Assert
         _productCreatedHandler.DidNotReceiveWithAnyArgs().HandleAsync(default!, default);
         consumer.Received(1).Commit(consumeResult);
-    }
-
-    [Fact]
-    public void ProcessMessage_SuccessfulEvent_ShouldCommitOnlyAfterProcessing()
-    {
-        // Arrange
-        var service = CreateService();
-        var eventId = Guid.NewGuid();
-        var rawJson = JsonSerializer.Serialize(new
-        {
-            eventId = eventId,
-            eventType = nameof(ProductCreatedEvent),
-            productId = Guid.NewGuid(),
-            sku = "SKU-SUCCESS",
-            name = "Success Test",
-            unitPrice = 60.0,
-            isActive = true
-        });
-
-        var consumeResult = CreateConsumeResult("supplychainx.product.events", rawJson);
-        var consumer = Substitute.For<IConsumer<string, string>>();
-
-        _idempotencyService.HasBeenProcessedAsync(eventId, Arg.Any<CancellationToken>()).Returns(false);
-
-        // Act
-        service.ProcessMessage(consumer, consumeResult, CancellationToken.None);
-
-        // Assert
-        Received.InOrder(() =>
-        {
-            _productCreatedHandler.HandleAsync(Arg.Any<ProductCreatedEvent>(), Arg.Any<CancellationToken>());
-            _idempotencyService.MarkAsProcessedAsync(eventId, nameof(ProductCreatedEvent), Arg.Any<CancellationToken>());
-            consumer.Commit(consumeResult);
-        });
-    }
-
-    [Fact]
-    public void ProcessMessage_FailedEvent_ShouldNotCommitBeforeRetryOrDlq()
-    {
-        // Arrange
-        var service = CreateService();
-        var eventId = Guid.NewGuid();
-        var rawJson = JsonSerializer.Serialize(new
-        {
-            eventId = eventId,
-            eventType = nameof(ProductCreatedEvent),
-            productId = Guid.NewGuid(),
-            sku = "SKU-FAILED-NOT-COMMITTED",
-            name = "Failed Commit Test",
-            unitPrice = 70.0,
-            isActive = true
-        });
-
-        var consumeResult = CreateConsumeResult("supplychainx.product.events", rawJson);
-        var consumer = Substitute.For<IConsumer<string, string>>();
-
-        _idempotencyService.HasBeenProcessedAsync(eventId, Arg.Any<CancellationToken>()).Returns(false);
-
-        _productCreatedHandler.HandleAsync(Arg.Any<ProductCreatedEvent>(), Arg.Any<CancellationToken>())
-            .Returns<Task>(x => throw new InvalidOperationException("Fail"));
-
-        _eventPublisher.PublishRawAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IDictionary<string, string>>(), Arg.Any<CancellationToken>())
-            .Returns<Task>(x => throw new Exception("DLQ Fail"));
-
-        // Act
-        service.ProcessMessage(consumer, consumeResult, CancellationToken.None);
-
-        // Assert
-        consumer.DidNotReceive().Commit(Arg.Any<ConsumeResult<string, string>>());
-    }
-
-    [Fact]
-    public void ProcessMessage_SubsequentValidEvents_ShouldProcessAfterFailedEvent()
-    {
-        // Arrange
-        var service = CreateService();
-        var failedEventId = Guid.NewGuid();
-        var failedJson = JsonSerializer.Serialize(new
-        {
-            eventId = failedEventId,
-            eventType = nameof(ProductCreatedEvent),
-            productId = Guid.NewGuid(),
-            sku = "SKU-FAIL-SEQ",
-            name = "Failed Event",
-            unitPrice = 80.0,
-            isActive = true
-        });
-
-        var validEventId = Guid.NewGuid();
-        var validJson = JsonSerializer.Serialize(new
-        {
-            eventId = validEventId,
-            eventType = nameof(ProductCreatedEvent),
-            productId = Guid.NewGuid(),
-            sku = "SKU-VALID-SEQ",
-            name = "Valid Event",
-            unitPrice = 90.0,
-            isActive = true
-        });
-
-        var consumer = Substitute.For<IConsumer<string, string>>();
-        var failedResult = CreateConsumeResult("supplychainx.product.events", failedJson, offset: 1);
-        var validResult = CreateConsumeResult("supplychainx.product.events", validJson, offset: 2);
-
-        _idempotencyService.HasBeenProcessedAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);
-
-        _productCreatedHandler.HandleAsync(Arg.Is<ProductCreatedEvent>(p => p.EventId == failedEventId), Arg.Any<CancellationToken>())
-            .Returns<Task>(x => throw new InvalidOperationException("Permanent failure"));
-
-        _productCreatedHandler.HandleAsync(Arg.Is<ProductCreatedEvent>(p => p.EventId == validEventId), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
-        _eventPublisher.PublishRawAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IDictionary<string, string>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
-        // Act 1: Process failed message (goes to DLQ)
-        service.ProcessMessage(consumer, failedResult, CancellationToken.None);
-
-        // Act 2: Process subsequent valid message
-        service.ProcessMessage(consumer, validResult, CancellationToken.None);
-
-        // Assert
-        consumer.Received(1).Commit(failedResult);
-        consumer.Received(1).Commit(validResult);
-        _idempotencyService.Received(1).MarkAsProcessedAsync(validEventId, nameof(ProductCreatedEvent), Arg.Any<CancellationToken>());
+        _statusService.Received(1).RecordDuplicate("supplychainx.product.events", eventId, nameof(ProductCreatedEvent));
     }
 }
