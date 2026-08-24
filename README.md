@@ -1,32 +1,32 @@
 # SupplyChainX
 
-**Version**: `v0.7.0`
-**Milestone**: `v0.7 – Observability & Operational Monitoring`
-**Status**: `v0.7 – Verified`
+**Version**: `v0.8.0`  
+**Milestone**: `v0.8 – Angular Frontend & Operations Dashboard`  
+**Status**: `v0.8 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, and structured operational observability.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, and an Angular 19 management dashboard.
 
 ---
 
 ## Architectural Flow & Overview
 
 ```
-                          ┌──────────────────────────┐
-                          │    HTTP Clients / REST   │
-                          └────────────┬─────────────┘
-                                       │ (X-Correlation-ID)
-                                       ▼
-                          ┌──────────────────────────┐
-                          │   SupplyChainX.Api       │
-                          │  (Health & Metrics APIs) │
-                          └────────────┬─────────────┘
-                                       │
-                ┌──────────────────────┴──────────────────────┐
-                ▼                                             ▼
-  ┌──────────────────────────┐                  ┌──────────────────────────┐
-  │ SupplyChainX.Application │                  │ PostgreSQL Database (EF) │
-  │  Services & Event Logic  │                  │  Entities & Idempotency  │
-  └────────────┬─────────────┘                  └──────────────────────────┘
+  ┌──────────────────────────────────────────────────────────┐
+  │         Angular 19 Frontend (Port 4200)                  │
+  │   Dashboard / Products / Warehouses / Inventory Pages   │
+  └────────────────────────────┬─────────────────────────────┘
+                               │ (REST API & X-Correlation-ID)
+                               ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │              SupplyChainX.Api (.NET 8)                   │
+  │     Controllers, Middleware, Health & Metrics Endpoints  │
+  └────────────┬────────────────────────────────┬────────────┘
+               │                                │
+               ▼                                ▼
+  ┌──────────────────────────┐    ┌──────────────────────────┐
+  │ SupplyChainX.Application │    │ PostgreSQL Database (EF) │
+  │  Services & Event Logic  │    │  Entities & Idempotency  │
+  └────────────┬─────────────┘    └──────────────────────────┘
                │ (Publish Events)
                ▼
   ┌──────────────────────────┐
@@ -101,11 +101,21 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Request Tracing**: `CorrelationIdMiddleware` injecting `X-Correlation-ID` headers into HTTP requests and Serilog `LogContext`.
 - **Structured Logging**: Contextual log enrichment (`EventId`, `EventType`, `Topic`, `Partition`, `Offset`, `CorrelationId`).
 
+### **v0.8 — Angular Frontend & Operations Dashboard**
+- **Angular 19 + TypeScript Client**: Built standalone component architecture in `frontend/` with Angular Router and modular layout.
+- **API Service Layer**: Reusable HTTP services (`HealthService`, `MetricsService`, `ProductService`, `WarehouseService`, `InventoryService`) communicating directly with ASP.NET Core Web API endpoints.
+- **Operations & Telemetry Dashboard (`/dashboard`)**: Real-time health probes (`/health`, `/health/ready`, `/health/live`), Kafka consumer group status, throughput counters, retry/DLQ metrics, and system runtime telemetry.
+- **Product Catalog Management (`/products`)**: Paginated product list with search/status filters, view details, create modal, update modal, and delete confirmation.
+- **Warehouse Management (`/warehouses`)**: Paginated warehouse list with search/status filters, location configuration, and full CRUD modal dialogs.
+- **Inventory Control & Stock Allocation (`/inventory`)**: Stock overview with low stock alerts (`availableQuantity < threshold`), product/warehouse filter dropdowns, and inventory adjustment modal supporting Increase, Decrease, Reserve, and Release allocation actions.
+- **Backend & Frontend Verification**: Frontend build passed (`ng build`), backend build passed (0 errors, 0 warnings), 64/64 backend unit tests passed, and manual browser verification completed across all routes.
+
 ---
 
 ## Technology Stack
 
-- **Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
+- **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture, Angular Router, RxJS)
+- **Backend Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
 - **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
 - **Messaging**: Apache Kafka 3.8.0 (`Confluent.Kafka` 2.6.0)
@@ -119,6 +129,14 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
+├── frontend/                                 # Angular Client Application (v0.8)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/                         # Models & HTTP API Services
+│   │   │   ├── features/                     # Dashboard, Products, Warehouses, Inventory
+│   │   │   └── layout/                       # Layout & Navigation
+│   │   └── environments/                     # Environment configuration (apiBaseUrl)
+│   └── package.json
 ├── backend/                                  # ASP.NET Core Web API Solution
 │   ├── SupplyChainX.sln
 │   └── src/
@@ -161,42 +179,37 @@ cd infrastructure
 docker compose up -d
 ```
 
-### 2. Build & Test Solution
-Execute clean build and unit tests:
+### 2. Build & Test Backend Solution
+Execute clean backend build and unit tests:
 
 ```bash
 dotnet build backend/SupplyChainX.sln
 dotnet test backend/SupplyChainX.sln --logger "console;verbosity=normal"
 ```
 
-### 3. Run Web API
+### 3. Run Backend Web API
 Start the ASP.NET Core API server:
 
 ```bash
 dotnet run --project backend/src/SupplyChainX.Api/SupplyChainX.Api.csproj
 ```
 
-### 4. Verify Observability Endpoints
+### 4. Build & Run Angular Frontend
+In a separate terminal, start the Angular development server:
+
 ```bash
-# Health Check (Detailed)
-curl -i http://localhost:5000/health
-
-# Readiness Probe
-curl -i http://localhost:5000/health/ready
-
-# Liveness Probe
-curl -i http://localhost:5000/health/live
-
-# Operational Metrics JSON
-curl -s http://localhost:5000/api/v1/metrics | jq .
+cd frontend
+npm start
 ```
+*Navigate to `http://localhost:4200/` in your browser to access the management UI.*
 
 ---
 
 ## Verified Invariants & Quality Standards
 
-- **Build Quality**: 0 Errors, 0 Warnings.
+- **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings.
 - **Test Suite**: 64 / 64 Automated Unit Tests Passing.
+- **Frontend UI & Integration**: All 4 client routes (`/dashboard`, `/products`, `/warehouses`, `/inventory`) integrated with real ASP.NET Core backend endpoints.
 - **Endpoints**: `/health`, `/health/ready`, `/health/live`, `/api/v1/metrics` returning HTTP 200 OK.
 - **Kafka Resilience**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish.
 - **Consumer Lag**: Verified consumer lag returns to `0` across active topic partitions.
