@@ -1,49 +1,117 @@
 # SupplyChainX
 
-**Version**: `v0.5.0`
-**Milestone**: `v0.5 – Kafka Event Consumers & Processing`
+**Version**: `v0.7.0`
+**Milestone**: `v0.7 – Observability & Operational Monitoring`
+**Status**: `v0.7 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, scalable event-driven Clean Architecture.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, and structured operational observability.
 
 ---
 
-## v0.5 Scope & Event Consumer Architecture
+## Architectural Flow & Overview
 
-Milestone **v0.5** introduces reliable, asynchronous Kafka event consumers, event processing handlers, manual offset commit strategies, and PostgreSQL-backed idempotency:
+```
+                          ┌──────────────────────────┐
+                          │    HTTP Clients / REST   │
+                          └────────────┬─────────────┘
+                                       │ (X-Correlation-ID)
+                                       ▼
+                          ┌──────────────────────────┐
+                          │   SupplyChainX.Api       │
+                          │  (Health & Metrics APIs) │
+                          └────────────┬─────────────┘
+                                       │
+                ┌──────────────────────┴──────────────────────┐
+                ▼                                             ▼
+  ┌──────────────────────────┐                  ┌──────────────────────────┐
+  │ SupplyChainX.Application │                  │ PostgreSQL Database (EF) │
+  │  Services & Event Logic  │                  │  Entities & Idempotency  │
+  └────────────┬─────────────┘                  └──────────────────────────┘
+               │ (Publish Events)
+               ▼
+  ┌──────────────────────────┐
+  │   Apache Kafka Broker    │
+  │   (Primary & DLQ Topics) │
+  └────────────┬─────────────┘
+               │ (Consume Events)
+               ▼
+  ┌──────────────────────────┐
+  │ KafkaConsumerBackground  │
+  │   Idempotent Consumer    │
+  └────────────┬─────────────┘
+               │ (Retry / DLQ Routing)
+               ▼
+  ┌──────────────────────────┐
+  │ Operational Monitoring   │
+  │ Metrics & Health Checks  │
+  └──────────────────────────┘
+```
 
-1. **Application Event Handlers (`IEventHandler<TEvent>`)**:
-   - `SupplyChainX.Application` defines strongly typed handlers for domain events (`ProductCreatedEventHandler`, `ProductUpdatedEventHandler`, `ProductDeletedEventHandler`, `WarehouseCreatedEventHandler`, `WarehouseUpdatedEventHandler`, `WarehouseDeletedEventHandler`, `InventoryAdjustedEventHandler`).
-   - Handlers validate payloads and execute domain processing with structured logging.
+---
 
-2. **Hosted Kafka Consumer Service (`KafkaConsumerBackgroundService`)**:
-   - Implemented in `SupplyChainX.Infrastructure/Messaging/Kafka/KafkaConsumerBackgroundService.cs` as a hosted `BackgroundService`.
-   - Subscribes to `supplychainx.product.events`, `supplychainx.warehouse.events`, and `supplychainx.inventory.events` using consumer group `supplychainx-event-consumers`.
-   - Executes background message consumption without blocking ASP.NET Core startup.
+## Milestone Evolution & Completed Capabilities
 
-3. **Manual Offset Commit Strategy**:
-   - `EnableAutoCommit` is set to `false`.
-   - Offsets are committed manually via `consumer.Commit(result)` **only after** an event is successfully processed by its handler and recorded in PostgreSQL.
+### **v0.1 — Project Foundation**
+- **Clean Architecture Solution Setup**: Structured into `Domain`, `Application`, `Infrastructure`, and `Api` layers following DDD and Clean Architecture principles.
+- **Infrastructure Baseline**: Provisioned PostgreSQL database and Apache Kafka containers using Docker Compose.
+- **CI & Build Pipeline**: Initialized automated project build and test configuration.
 
-4. **PostgreSQL Idempotency & Duplicate Prevention**:
-   - Persists processed event IDs in the PostgreSQL `ProcessedEvents` table (`EventId`, `EventType`, `ProcessedAtUtc`).
-   - If a duplicate event is re-delivered, the consumer logs the duplicate warning, commits the offset to advance Kafka, and skips re-execution.
+### **v0.2 — Backend Core + PostgreSQL**
+- **ASP.NET Core Web API**: Established Web API host, middleware pipeline, and global exception handling.
+- **PostgreSQL Integration**: Configured Entity Framework Core (`SupplyChainXDbContext`) with Npgsql driver and connection pooling.
+- **Health Foundation**: Implemented initial API health check endpoint.
 
-5. **Retry Policy & Resilience**:
-   - Transient failures are retried up to `MaxRetryAttempts` (configurable).
-   - Malformed payloads log structured errors and commit offsets to avoid queue deadlocks.
+### **v0.3 — Product, Warehouse & Inventory Domain**
+- **Domain Modeling**: Rich domain entities (`Product`, `Warehouse`, `Inventory`) featuring business rule encapsulation, concurrency tokens, and stock allocation logic (available vs. reserved quantities).
+- **Service Layer & Repositories**: Application service boundaries (`ProductService`, `WarehouseService`, `InventoryService`) managing transaction workflows.
+- **EF Core Migrations**: Database schema generation and migration (`InitialDomainSchema`).
+- **Comprehensive Unit Testing**: Automated unit tests for domain invariants and service operations.
+
+### **v0.4 — Kafka Event Publishing**
+- **Asynchronous Event Publishing**: Event producer abstraction (`IEventPublisher`, `KafkaEventPublisher`) using `Confluent.Kafka`.
+- **Event Contracts**: Strongly typed event models (`ProductCreatedEvent`, `ProductUpdatedEvent`, `ProductDeletedEvent`, `WarehouseCreatedEvent`, `WarehouseUpdatedEvent`, `WarehouseDeletedEvent`, `InventoryAdjustedEvent`).
+- **Domain Event Integration**: Automatic event publishing upon successful state-changing domain operations to dedicated Kafka topics:
+  - `supplychainx.product.events`
+  - `supplychainx.warehouse.events`
+  - `supplychainx.inventory.events`
+
+### **v0.5 — Kafka Event Consumption + Idempotency**
+- **Hosted Consumer Service**: Non-blocking background worker (`KafkaConsumerBackgroundService`) subscribing under consumer group `supplychainx-event-consumers`.
+- **Application Event Handlers**: Specialized event handlers (`IEventHandler<TEvent>`) executing domain processing.
+- **Manual Offset Commits**: Explicit offset commits (`EnableAutoCommit = false`) triggered only after successful database processing.
+- **PostgreSQL Idempotency Store**: Duplicate message prevention using PostgreSQL-backed `ProcessedEvents` table (`EventId`, `EventType`, `ProcessedAtUtc`).
+
+### **v0.6 — Retry Handling & Dead Letter Queue (DLQ)**
+- **Resilient Retry Loop**: Automatic retry handling for transient processing failures with configurable attempt counts (`MaxRetryAttempts = 3`) and optional exponential backoff.
+- **Automatic Topic Provisioning**: Startup topic initialization via Kafka `IAdminClient` ensuring primary and DLQ topics exist prior to consumer subscription:
+  - `supplychainx.product.events.dlq`
+  - `supplychainx.warehouse.events.dlq`
+  - `supplychainx.inventory.events.dlq`
+- **Dead Letter Routing**: Poison message routing to corresponding `.dlq` topics with diagnostic headers (`x-original-topic`, `x-original-partition`, `x-original-offset`, `x-exception-message`, `x-failed-at-utc`, `x-retry-attempts`, `x-event-id`, `x-event-type`).
+- **Guaranteed Offset Semantics**: Offsets are committed **only** after successful processing or successful DLQ publication, preventing data loss.
+- **Malformed Payload Isolation**: Invalid JSON payloads log error context and commit offset without halting consumer execution.
+
+### **v0.7 — Observability & Health Monitoring**
+- **Active Health Checks**:
+  - `/health`: Detailed health report checking PostgreSQL `DbContext` and active Kafka broker connectivity via `AdminClient`.
+  - `/health/ready`: Readiness probe verifying backend dependencies are fully operational.
+  - `/health/live`: Liveness probe for process execution monitoring.
+- **Operational Metrics Endpoint (`GET /api/v1/metrics`)**: Exposes consumer runtime state (`IsRunning`, `ConsumerGroupId`, `SubscribedTopics`), event throughput counters, retry/DLQ statistics, and process memory/thread metrics without exposing sensitive secrets or connection strings.
+- **Thread-Safe Metrics Service**: `IKafkaConsumerStatusService` / `KafkaConsumerStatusService` backed by `Interlocked` atomic counters and `System.Diagnostics.Metrics` instruments.
+- **Request Tracing**: `CorrelationIdMiddleware` injecting `X-Correlation-ID` headers into HTTP requests and Serilog `LogContext`.
+- **Structured Logging**: Contextual log enrichment (`EventId`, `EventType`, `Topic`, `Partition`, `Offset`, `CorrelationId`).
 
 ---
 
 ## Technology Stack
 
-- **Backend**: C# 12 / .NET 8 ASP.NET Core Web API
-- **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture)
-- **Database**: PostgreSQL 16 (EF Core 8 `Npgsql.EntityFrameworkCore.PostgreSQL`)
-- **Messaging**: Apache Kafka 3.8.0 (KRaft mode via `Confluent.Kafka` 2.6.0)
-- **Authentication**: JWT (Deferred)
-- **Testing**: xUnit (`FluentAssertions`, `NSubstitute`, `EF Core InMemory`)
+- **Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
+- **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
+- **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
+- **Messaging**: Apache Kafka 3.8.0 (`Confluent.Kafka` 2.6.0)
+- **Observability & Health**: ASP.NET Core Health Checks, `System.Diagnostics.Metrics`, Serilog
+- **Testing**: xUnit, FluentAssertions, NSubstitute, EF Core InMemory
 - **Containerization**: Docker & Docker Compose
-- **Version Control**: Git
 
 ---
 
@@ -51,33 +119,85 @@ Milestone **v0.5** introduces reliable, asynchronous Kafka event consumers, even
 
 ```
 SupplyChainX/
-├── frontend/                # Angular client baseline (v0.1)
-├── backend/                 # ASP.NET Core Web API solution
+├── backend/                                  # ASP.NET Core Web API Solution
 │   ├── SupplyChainX.sln
 │   └── src/
-│       ├── SupplyChainX.Api/          # REST Controllers, AppSettings & Middleware
-│       ├── SupplyChainX.Application/  # Product/Warehouse/Inventory Services, Event Handlers & Contracts
-│       ├── SupplyChainX.Domain/       # Domain Entities (Product, Warehouse, Inventory, ProcessedEvent)
-│       └── SupplyChainX.Infrastructure/# DbContext, Migrations, KafkaEventPublisher & KafkaConsumerBackgroundService
-├── messaging/               # Event contract documentation & schemas
-├── tests/                   # Automated test suites
-│   └── SupplyChainX.UnitTests/ # Unit tests for Services, Handlers & Idempotency
-├── docs/                    # Architecture and developer documentation
-├── infrastructure/          # Container orchestration (Docker Compose)
-│   ├── docker-compose.yml
-│   └── .env.example
-├── LICENSE                  # MIT License
-└── README.md                # Project documentation
+│       ├── SupplyChainX.Api/                 # Controllers, Middleware & Host Configuration
+│       │   ├── Controllers/                  # HealthController, MetricsController, Domain Controllers
+│       │   ├── Middleware/                   # CorrelationIdMiddleware, GlobalExceptionHandlingMiddleware
+│       │   ├── Conventions/                  # ApiVersionRouteConvention
+│       │   └── Program.cs
+│       ├── SupplyChainX.Application/         # Interfaces, DTOs, Handlers & Configuration Options
+│       │   ├── Common/
+│       │   │   ├── Configuration/            # KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
+│       │   │   ├── Events/                   # Domain Event Contracts
+│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IEventPublisher, IKafkaConsumerStatusService
+│       │   │   └── Models/                   # KafkaConsumerStatusDto
+│       │   └── EventHandlers/                # Product, Warehouse & Inventory Event Handlers
+│       ├── SupplyChainX.Domain/              # Core Domain Entities & Custom Exceptions
+│       │   ├── Entities/                     # Product, Warehouse, Inventory, ProcessedEvent
+│       │   └── Exceptions/                   # DomainException, NotFoundException, ConflictException
+│       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging & Health Checks
+│           ├── Health/                       # KafkaHealthCheck
+│           ├── Messaging/Kafka/              # KafkaEventPublisher, KafkaConsumerBackgroundService, KafkaConsumerStatusService
+│           └── Persistence/                  # SupplyChainXDbContext & Migrations
+├── infrastructure/                           # Container Orchestration
+│   └── docker-compose.yml                    # PostgreSQL & Kafka Services
+├── tests/                                    # Automated Test Suites
+│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Health & Metrics
+├── LICENSE                                   # MIT License
+└── README.md                                 # Project Documentation
 ```
 
 ---
 
-## Infrastructure Setup
+## Development Setup & Verification
 
-Start development infrastructure (PostgreSQL on port `5433`, Kafka on port `9092`):
+### 1. Start Infrastructure Dependencies
+Ensure Docker is running, then start PostgreSQL (port `5433`) and Kafka (port `9092`):
 
 ```bash
 cd infrastructure
-cp .env.example .env
 docker compose up -d
 ```
+
+### 2. Build & Test Solution
+Execute clean build and unit tests:
+
+```bash
+dotnet build backend/SupplyChainX.sln
+dotnet test backend/SupplyChainX.sln --logger "console;verbosity=normal"
+```
+
+### 3. Run Web API
+Start the ASP.NET Core API server:
+
+```bash
+dotnet run --project backend/src/SupplyChainX.Api/SupplyChainX.Api.csproj
+```
+
+### 4. Verify Observability Endpoints
+```bash
+# Health Check (Detailed)
+curl -i http://localhost:5000/health
+
+# Readiness Probe
+curl -i http://localhost:5000/health/ready
+
+# Liveness Probe
+curl -i http://localhost:5000/health/live
+
+# Operational Metrics JSON
+curl -s http://localhost:5000/api/v1/metrics | jq .
+```
+
+---
+
+## Verified Invariants & Quality Standards
+
+- **Build Quality**: 0 Errors, 0 Warnings.
+- **Test Suite**: 64 / 64 Automated Unit Tests Passing.
+- **Endpoints**: `/health`, `/health/ready`, `/health/live`, `/api/v1/metrics` returning HTTP 200 OK.
+- **Kafka Resilience**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish.
+- **Consumer Lag**: Verified consumer lag returns to `0` across active topic partitions.
+- **Idempotency**: PostgreSQL `ProcessedEvents` persistence verified with zero duplicate processing.
