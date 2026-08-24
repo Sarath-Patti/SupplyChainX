@@ -1,5 +1,10 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using NSubstitute;
+using SupplyChainX.Application.Common.Configuration;
+using SupplyChainX.Application.Common.Events;
+using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Application.Services;
 using SupplyChainX.Domain.Entities;
@@ -12,6 +17,8 @@ namespace SupplyChainX.UnitTests.Services;
 public class WarehouseServiceTests : IDisposable
 {
     private readonly SupplyChainXDbContext _dbContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly IOptions<KafkaTopicOptions> _topicOptions;
     private readonly WarehouseService _service;
 
     public WarehouseServiceTests()
@@ -21,7 +28,15 @@ public class WarehouseServiceTests : IDisposable
             .Options;
 
         _dbContext = new SupplyChainXDbContext(options);
-        _service = new WarehouseService(_dbContext);
+        _eventPublisher = Substitute.For<IEventPublisher>();
+        _topicOptions = Options.Create(new KafkaTopicOptions
+        {
+            ProductEvents = "supplychainx.product.events",
+            WarehouseEvents = "supplychainx.warehouse.events",
+            InventoryEvents = "supplychainx.inventory.events"
+        });
+
+        _service = new WarehouseService(_dbContext, _eventPublisher, _topicOptions);
     }
 
     public void Dispose()
@@ -31,7 +46,7 @@ public class WarehouseServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateWarehouseAsync_WithValidData_ShouldPersistWarehouse()
+    public async Task CreateWarehouseAsync_WithValidData_ShouldPersistWarehouseAndPublishEvent()
     {
         // Arrange
         var request = new CreateWarehouseRequest("Central Hub", "Denver, CO");
@@ -46,6 +61,35 @@ public class WarehouseServiceTests : IDisposable
 
         var dbWarehouse = await _dbContext.Warehouses.FirstOrDefaultAsync(w => w.Id == result.Id);
         dbWarehouse.Should().NotBeNull();
+
+        // Verify Event Publishing
+        await _eventPublisher.Received(1).PublishAsync(
+            _topicOptions.Value.WarehouseEvents,
+            result.Id.ToString(),
+            Arg.Is<WarehouseCreatedEvent>(e => e.WarehouseId == result.Id && e.Name == "Central Hub"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateWarehouseAsync_WithValidData_ShouldUpdateWarehouseAndPublishEvent()
+    {
+        // Arrange
+        var createResult = await _service.CreateWarehouseAsync(new CreateWarehouseRequest("Original Hub", "Dallas, TX"));
+        _eventPublisher.ClearReceivedCalls();
+
+        var updateRequest = new UpdateWarehouseRequest("Updated Hub", "Dallas, TX", true);
+
+        // Act
+        var result = await _service.UpdateWarehouseAsync(createResult.Id, updateRequest);
+
+        // Assert
+        result.Name.Should().Be("Updated Hub");
+
+        await _eventPublisher.Received(1).PublishAsync(
+            _topicOptions.Value.WarehouseEvents,
+            createResult.Id.ToString(),
+            Arg.Is<WarehouseUpdatedEvent>(e => e.WarehouseId == createResult.Id && e.Name == "Updated Hub"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

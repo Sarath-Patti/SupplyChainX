@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SupplyChainX.Application.Common.Configuration;
+using SupplyChainX.Application.Common.Events;
 using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Domain.Entities;
@@ -9,10 +12,17 @@ namespace SupplyChainX.Application.Services;
 public class WarehouseService : IWarehouseService
 {
     private readonly ISupplyChainXDbContext _dbContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly KafkaTopicOptions _topicOptions;
 
-    public WarehouseService(ISupplyChainXDbContext dbContext)
+    public WarehouseService(
+        ISupplyChainXDbContext dbContext,
+        IEventPublisher eventPublisher,
+        IOptions<KafkaTopicOptions> topicOptions)
     {
         _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
+        _topicOptions = topicOptions.Value;
     }
 
     public async Task<WarehouseDto> CreateWarehouseAsync(CreateWarehouseRequest request, CancellationToken cancellationToken = default)
@@ -20,6 +30,18 @@ public class WarehouseService : IWarehouseService
         var warehouse = new Warehouse(request.Name, request.Location, request.IsActive);
         _dbContext.Warehouses.Add(warehouse);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Publish WarehouseCreatedEvent after successful DB persist
+        var @event = new WarehouseCreatedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            WarehouseId: warehouse.Id,
+            Name: warehouse.Name,
+            Location: warehouse.Location,
+            IsActive: warehouse.IsActive
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.WarehouseEvents, warehouse.Id.ToString(), @event, cancellationToken);
 
         return MapToDto(warehouse);
     }
@@ -72,6 +94,18 @@ public class WarehouseService : IWarehouseService
 
         warehouse.Update(request.Name, request.Location, request.IsActive);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Publish WarehouseUpdatedEvent after successful DB persist
+        var @event = new WarehouseUpdatedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            WarehouseId: warehouse.Id,
+            Name: warehouse.Name,
+            Location: warehouse.Location,
+            IsActive: warehouse.IsActive
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.WarehouseEvents, warehouse.Id.ToString(), @event, cancellationToken);
 
         return MapToDto(warehouse);
     }

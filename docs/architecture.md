@@ -1,11 +1,11 @@
 # SupplyChainX Architecture Documentation
 
-**Version**: `v0.3.0`  
-**Milestone**: `v0.3 – Product, Warehouse & Inventory Domain`
+**Version**: `v0.4.0`
+**Milestone**: `v0.4 – Event-Driven Kafka Integration`
 
 ## High-Level Architectural Vision
 
-SupplyChainX is implemented as a production-quality modular monolith with strict domain boundaries and layered separation of concerns.
+SupplyChainX is implemented as a production-quality modular monolith adhering to Clean Architecture principles.
 
 ```
 +-------------------------------------------------------------------+
@@ -23,6 +23,7 @@ SupplyChainX is implemented as a production-quality modular monolith with strict
 +-------------------------------------------------------------------+
 |               Application Core (SupplyChainX.Application)         |
 |   [ProductService] [WarehouseService] [InventoryService] [DTOs]   |
+|   [IEventPublisher Interface] [Strongly Typed Event Contracts]   |
 +-------------------------------------------------------------------+
                                   |
                                   v
@@ -31,11 +32,11 @@ SupplyChainX is implemented as a production-quality modular monolith with strict
 |   [Product Entity] [Warehouse Entity] [Inventory Entity]          |
 |   [Domain Exceptions: DomainException, NotFoundException, etc.]   |
 +-------------------------------------------------------------------+
-                                  ^
-                                  | Implementations
+              ^                                       ^
+              | Implementations                       | Implementations
 +-------------------------------------------------------------------+
 |             Infrastructure (SupplyChainX.Infrastructure)          |
-|   [EF Core Configurations] [DbContext] [PostgreSQL Migrations]    |
+|   [SupplyChainXDbContext] [PostgreSQL Npgsql] [KafkaEventPublisher]|
 +-------------------------------------------------------------------+
               |                                       |
               v                                       v
@@ -44,39 +45,38 @@ SupplyChainX is implemented as a production-quality modular monolith with strict
 
 ---
 
-## Domain & ERD Specification
+## Event-Driven Architecture & Producer Flow
 
 ```
-+-------------------+             +-----------------------+             +-------------------+
-|      Product      |             |       Inventory       |             |     Warehouse     |
-+-------------------+             +-----------------------+             +-------------------+
-| PK Id (Guid)      |<--- 1:N --->| PK Id (Guid)          |<--- N:1 --->| PK Id (Guid)      |
-| Sku (Unique Index)|             | FK ProductId (Guid)   |             | Name (Index)      |
-| Name              |             | FK WarehouseId (Guid) |             | Location          |
-| Description       |             | AvailableQuantity     |             | IsActive          |
-| UnitPrice (18,2)  |             | ReservedQuantity      |             | CreatedAtUtc      |
-| IsActive          |             | MinimumStockThreshold |             | UpdatedAtUtc      |
-| CreatedAtUtc      |             | Version (Concurrency) |             +-------------------+
-| UpdatedAtUtc      |             | CreatedAtUtc          |
-+-------------------+             | UpdatedAtUtc          |
-                                  +-----------------------+
-                                  | Unique Index:         |
-                                  | (ProductId,WarehouseId)|
-                                  +-----------------------+
+[HTTP Request] ---> [Controller] ---> [Application Service]
+                                             |
+                                             v
+                                 1. Mutate Domain Entity
+                                             |
+                                             v
+                                 2. DbContext.SaveChangesAsync()
+                                             |
+                                    [PostgreSQL 16 DB]
+                                             |
+                                             v
+                                 3. IEventPublisher.PublishAsync()
+                                             |
+                                             v
+                                  [KafkaEventPublisher]
+                                             |
+                                             v
+                                   [Apache Kafka Broker]
+                               (supplychainx.*.events)
 ```
 
 ---
 
-## Inventory Stock Adjustment Rules
+## Kafka Event Contracts & Topics
 
-Inventory stock adjustments are executed inside the `Inventory` domain aggregate root:
-
-1. **Stock Increase**: `AvailableQuantity += quantity`
-2. **Stock Decrease**: Validates `AvailableQuantity >= quantity` and `AvailableQuantity - quantity >= ReservedQuantity`.
-3. **Stock Reservation**: Validates `ReservedQuantity + quantity <= AvailableQuantity`.
-4. **Reservation Release**: Validates `ReservedQuantity >= quantity`.
-
-## Optimistic Concurrency Control
-
-- High-frequency stock adjustments on `Inventory` records enforce EF Core optimistic concurrency control via an explicit `uint Version` property configured as a concurrency token (`.IsConcurrencyToken()`).
-- Concurrent update collisions generate a `DbUpdateConcurrencyException`, caught globally to return `HTTP 409 Conflict`.
+| Event Contract | Topic Name | Trigger |
+| :--- | :--- | :--- |
+| `ProductCreatedEvent` | `supplychainx.product.events` | Successful `CreateProductAsync` |
+| `ProductUpdatedEvent` | `supplychainx.product.events` | Successful `UpdateProductAsync` |
+| `WarehouseCreatedEvent` | `supplychainx.warehouse.events` | Successful `CreateWarehouseAsync` |
+| `WarehouseUpdatedEvent` | `supplychainx.warehouse.events` | Successful `UpdateWarehouseAsync` |
+| `InventoryAdjustedEvent` | `supplychainx.inventory.events` | Successful `AdjustInventoryAsync` |

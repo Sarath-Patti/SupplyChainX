@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SupplyChainX.Application.Common.Configuration;
+using SupplyChainX.Application.Common.Events;
 using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Domain.Entities;
@@ -9,10 +12,17 @@ namespace SupplyChainX.Application.Services;
 public class ProductService : IProductService
 {
     private readonly ISupplyChainXDbContext _dbContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly KafkaTopicOptions _topicOptions;
 
-    public ProductService(ISupplyChainXDbContext dbContext)
+    public ProductService(
+        ISupplyChainXDbContext dbContext,
+        IEventPublisher eventPublisher,
+        IOptions<KafkaTopicOptions> topicOptions)
     {
         _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
+        _topicOptions = topicOptions.Value;
     }
 
     public async Task<ProductDto> CreateProductAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
@@ -27,6 +37,20 @@ public class ProductService : IProductService
         var product = new Product(request.Sku, request.Name, request.Description, request.UnitPrice, request.IsActive);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Publish ProductCreatedEvent only after successful DB persist
+        var @event = new ProductCreatedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            ProductId: product.Id,
+            Sku: product.Sku,
+            Name: product.Name,
+            Description: product.Description,
+            UnitPrice: product.UnitPrice,
+            IsActive: product.IsActive
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.ProductEvents, product.Id.ToString(), @event, cancellationToken);
 
         return MapToDto(product);
     }
@@ -89,6 +113,20 @@ public class ProductService : IProductService
 
         product.Update(request.Sku, request.Name, request.Description, request.UnitPrice, request.IsActive);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Publish ProductUpdatedEvent only after successful DB persist
+        var @event = new ProductUpdatedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            ProductId: product.Id,
+            Sku: product.Sku,
+            Name: product.Name,
+            Description: product.Description,
+            UnitPrice: product.UnitPrice,
+            IsActive: product.IsActive
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.ProductEvents, product.Id.ToString(), @event, cancellationToken);
 
         return MapToDto(product);
     }

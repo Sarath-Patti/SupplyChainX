@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SupplyChainX.Application.Common.Configuration;
+using SupplyChainX.Application.Common.Events;
 using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Domain.Entities;
@@ -9,10 +12,17 @@ namespace SupplyChainX.Application.Services;
 public class InventoryService : IInventoryService
 {
     private readonly ISupplyChainXDbContext _dbContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly KafkaTopicOptions _topicOptions;
 
-    public InventoryService(ISupplyChainXDbContext dbContext)
+    public InventoryService(
+        ISupplyChainXDbContext dbContext,
+        IEventPublisher eventPublisher,
+        IOptions<KafkaTopicOptions> topicOptions)
     {
         _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
+        _topicOptions = topicOptions.Value;
     }
 
     public async Task<PagedResult<InventoryDto>> GetInventoryAsync(PaginationParams paginationParams, Guid? productId = null, Guid? warehouseId = null, CancellationToken cancellationToken = default)
@@ -121,12 +131,30 @@ public class InventoryService : IInventoryService
         // 4. Save Changes with Optimistic Concurrency Token
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Re-query with includes for DTO mapping
+        // Re-query with includes for DTO mapping and Event payload
         var updatedInventory = await _dbContext.Inventories
             .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .FirstAsync(i => i.Id == inventory.Id, cancellationToken);
+
+        // Publish InventoryAdjustedEvent after successful DB persist
+        var @event = new InventoryAdjustedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            InventoryId: updatedInventory.Id,
+            ProductId: updatedInventory.ProductId,
+            ProductSku: updatedInventory.Product?.Sku,
+            WarehouseId: updatedInventory.WarehouseId,
+            WarehouseName: updatedInventory.Warehouse?.Name,
+            AvailableQuantity: updatedInventory.AvailableQuantity,
+            ReservedQuantity: updatedInventory.ReservedQuantity,
+            QuantityAdjusted: request.Quantity,
+            AdjustmentType: request.AdjustmentType.ToString(),
+            Version: updatedInventory.Version
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.InventoryEvents, updatedInventory.Id.ToString(), @event, cancellationToken);
 
         return MapToDto(updatedInventory);
     }
