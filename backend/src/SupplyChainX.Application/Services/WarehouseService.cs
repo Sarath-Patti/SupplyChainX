@@ -31,7 +31,6 @@ public class WarehouseService : IWarehouseService
         _dbContext.Warehouses.Add(warehouse);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Publish WarehouseCreatedEvent after successful DB persist
         var @event = new WarehouseCreatedEvent(
             EventId: Guid.NewGuid(),
             OccurredOnUtc: DateTime.UtcNow,
@@ -95,7 +94,6 @@ public class WarehouseService : IWarehouseService
         warehouse.Update(request.Name, request.Location, request.IsActive);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Publish WarehouseUpdatedEvent after successful DB persist
         var @event = new WarehouseUpdatedEvent(
             EventId: Guid.NewGuid(),
             OccurredOnUtc: DateTime.UtcNow,
@@ -124,8 +122,18 @@ public class WarehouseService : IWarehouseService
             throw new ConflictException($"Cannot delete warehouse '{id}' because associated inventory records exist.");
         }
 
+        var deletedName = warehouse.Name;
         _dbContext.Warehouses.Remove(warehouse);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var @event = new WarehouseDeletedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            WarehouseId: id,
+            Name: deletedName
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.WarehouseEvents, id.ToString(), @event, cancellationToken);
     }
 
     private static WarehouseDto MapToDto(Warehouse w) =>

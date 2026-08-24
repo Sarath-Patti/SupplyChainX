@@ -1,7 +1,7 @@
 # SupplyChainX Architecture Documentation
 
-**Version**: `v0.4.0`
-**Milestone**: `v0.4 – Event-Driven Kafka Integration`
+**Version**: `v0.5.0`
+**Milestone**: `v0.5 – Kafka Event Consumers & Processing`
 
 ## High-Level Architectural Vision
 
@@ -23,20 +23,21 @@ SupplyChainX is implemented as a production-quality modular monolith adhering to
 +-------------------------------------------------------------------+
 |               Application Core (SupplyChainX.Application)         |
 |   [ProductService] [WarehouseService] [InventoryService] [DTOs]   |
-|   [IEventPublisher Interface] [Strongly Typed Event Contracts]   |
+|   [IEventPublisher Interface] [Event Handlers: Product, WH, Inv]  |
 +-------------------------------------------------------------------+
                                   |
                                   v
 +-------------------------------------------------------------------+
 |               Domain Model (SupplyChainX.Domain)                  |
 |   [Product Entity] [Warehouse Entity] [Inventory Entity]          |
-|   [Domain Exceptions: DomainException, NotFoundException, etc.]   |
+|   [ProcessedEvent Entity (Idempotency)] [Domain Exceptions]       |
 +-------------------------------------------------------------------+
               ^                                       ^
               | Implementations                       | Implementations
 +-------------------------------------------------------------------+
 |             Infrastructure (SupplyChainX.Infrastructure)          |
-|   [SupplyChainXDbContext] [PostgreSQL Npgsql] [KafkaEventPublisher]|
+|   [SupplyChainXDbContext] [PostgreSQL Npgsql] [IdempotencyService]|
+|   [KafkaEventPublisher] [KafkaConsumerBackgroundService]          |
 +-------------------------------------------------------------------+
               |                                       |
               v                                       v
@@ -45,9 +46,10 @@ SupplyChainX is implemented as a production-quality modular monolith adhering to
 
 ---
 
-## Event-Driven Architecture & Producer Flow
+## Event Producer & Consumer Flow
 
 ```
+1. PRODUCER FLOW:
 [HTTP Request] ---> [Controller] ---> [Application Service]
                                              |
                                              v
@@ -67,16 +69,38 @@ SupplyChainX is implemented as a production-quality modular monolith adhering to
                                              v
                                    [Apache Kafka Broker]
                                (supplychainx.*.events)
+
+2. CONSUMER FLOW:
+[Apache Kafka Broker] ---> [KafkaConsumerBackgroundService]
+                                             |
+                                             v
+                                 1. Parse Event & EventId
+                                             |
+                                             v
+                                 2. IIdempotencyService.HasBeenProcessedAsync()
+                                             |
+                                    [PostgreSQL 16 DB]
+                                             |
+                    +------------------------+------------------------+
+                    | (If Duplicate)                                  | (If New Event)
+                    v                                                 v
+         Log Warning & Commit Offset                       3. Resolve IEventHandler<TEvent>
+                                                                      |
+                                                                      v
+                                                           4. HandleAsync(event)
+                                                                      |
+                                                                      v
+                                                           5. MarkAsProcessedAsync()
+                                                                      |
+                                                                      v
+                                                           6. Manual consumer.Commit()
 ```
 
 ---
 
-## Kafka Event Contracts & Topics
+## Consumer Configuration & Offset Strategy
 
-| Event Contract | Topic Name | Trigger |
-| :--- | :--- | :--- |
-| `ProductCreatedEvent` | `supplychainx.product.events` | Successful `CreateProductAsync` |
-| `ProductUpdatedEvent` | `supplychainx.product.events` | Successful `UpdateProductAsync` |
-| `WarehouseCreatedEvent` | `supplychainx.warehouse.events` | Successful `CreateWarehouseAsync` |
-| `WarehouseUpdatedEvent` | `supplychainx.warehouse.events` | Successful `UpdateWarehouseAsync` |
-| `InventoryAdjustedEvent` | `supplychainx.inventory.events` | Successful `AdjustInventoryAsync` |
+- **Consumer Group ID**: `supplychainx-event-consumers`
+- **Offset Reset**: `Earliest` (ensures new consumer instances process unread messages)
+- **Commit Mode**: Manual commit (`EnableAutoCommit = false`). Offsets are committed only after successful event processing and idempotency recording in PostgreSQL.
+- **Idempotency Persistence**: PostgreSQL `ProcessedEvents` table (`EventId`, `EventType`, `ProcessedAtUtc`).

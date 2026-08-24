@@ -1,32 +1,36 @@
 # SupplyChainX
 
-**Version**: `v0.4.0`
-**Milestone**: `v0.4 – Event-Driven Kafka Integration`
+**Version**: `v0.5.0`
+**Milestone**: `v0.5 – Kafka Event Consumers & Processing`
 
 SupplyChainX is an enterprise inventory and order management platform built on a modern, scalable event-driven Clean Architecture.
 
 ---
 
-## v0.4 Scope & Event-Driven Architecture
+## v0.5 Scope & Event Consumer Architecture
 
-Milestone **v0.4** introduces event-driven domain integration using Apache Kafka:
+Milestone **v0.5** introduces reliable, asynchronous Kafka event consumers, event processing handlers, manual offset commit strategies, and PostgreSQL-backed idempotency:
 
-1. **Clean Architecture Event Publisher (`IEventPublisher`)**:
-   - `SupplyChainX.Application` defines the `IEventPublisher` interface and strongly typed event contract records (`ProductCreatedEvent`, `ProductUpdatedEvent`, `WarehouseCreatedEvent`, `WarehouseUpdatedEvent`, `InventoryAdjustedEvent`).
-   - The Application layer has **zero** dependencies on `Confluent.Kafka`.
+1. **Application Event Handlers (`IEventHandler<TEvent>`)**:
+   - `SupplyChainX.Application` defines strongly typed handlers for domain events (`ProductCreatedEventHandler`, `ProductUpdatedEventHandler`, `ProductDeletedEventHandler`, `WarehouseCreatedEventHandler`, `WarehouseUpdatedEventHandler`, `WarehouseDeletedEventHandler`, `InventoryAdjustedEventHandler`).
+   - Handlers validate payloads and execute domain processing with structured logging.
 
-2. **Infrastructure Kafka Producer (`KafkaEventPublisher`)**:
-   - Implemented in `SupplyChainX.Infrastructure/Messaging/Kafka/KafkaEventPublisher.cs` using `Confluent.Kafka.IProducer<string, string>`.
-   - Serializes event payloads to JSON (camelCase policy) and publishes messages asynchronously with domain entity IDs as Kafka keys for message partitioning.
+2. **Hosted Kafka Consumer Service (`KafkaConsumerBackgroundService`)**:
+   - Implemented in `SupplyChainX.Infrastructure/Messaging/Kafka/KafkaConsumerBackgroundService.cs` as a hosted `BackgroundService`.
+   - Subscribes to `supplychainx.product.events`, `supplychainx.warehouse.events`, and `supplychainx.inventory.events` using consumer group `supplychainx-event-consumers`.
+   - Executes background message consumption without blocking ASP.NET Core startup.
 
-3. **PostgreSQL-First Transactional Order**:
-   - Database mutations are saved to PostgreSQL (`SaveChangesAsync`) **before** publishing corresponding domain events.
-   - If validation or database transactions fail, no events are published.
+3. **Manual Offset Commit Strategy**:
+   - `EnableAutoCommit` is set to `false`.
+   - Offsets are committed manually via `consumer.Commit(result)` **only after** an event is successfully processed by its handler and recorded in PostgreSQL.
 
-4. **Kafka Topics & Configuration**:
-   - `supplychainx.product.events`: Product creation and update events.
-   - `supplychainx.warehouse.events`: Warehouse creation and update events.
-   - `supplychainx.inventory.events`: Stock increase, decrease, reserve, and release events.
+4. **PostgreSQL Idempotency & Duplicate Prevention**:
+   - Persists processed event IDs in the PostgreSQL `ProcessedEvents` table (`EventId`, `EventType`, `ProcessedAtUtc`).
+   - If a duplicate event is re-delivered, the consumer logs the duplicate warning, commits the offset to advance Kafka, and skips re-execution.
+
+5. **Retry Policy & Resilience**:
+   - Transient failures are retried up to `MaxRetryAttempts` (configurable).
+   - Malformed payloads log structured errors and commit offsets to avoid queue deadlocks.
 
 ---
 
@@ -52,12 +56,12 @@ SupplyChainX/
 │   ├── SupplyChainX.sln
 │   └── src/
 │       ├── SupplyChainX.Api/          # REST Controllers, AppSettings & Middleware
-│       ├── SupplyChainX.Application/  # Product/Warehouse/Inventory Services, IEventPublisher & Event Contracts
-│       ├── SupplyChainX.Domain/       # Product, Warehouse, Inventory Entities & Domain Exceptions
-│       └── SupplyChainX.Infrastructure/# DbContext, PostgreSQL Migrations & KafkaEventPublisher
+│       ├── SupplyChainX.Application/  # Product/Warehouse/Inventory Services, Event Handlers & Contracts
+│       ├── SupplyChainX.Domain/       # Domain Entities (Product, Warehouse, Inventory, ProcessedEvent)
+│       └── SupplyChainX.Infrastructure/# DbContext, Migrations, KafkaEventPublisher & KafkaConsumerBackgroundService
 ├── messaging/               # Event contract documentation & schemas
 ├── tests/                   # Automated test suites
-│   └── SupplyChainX.UnitTests/ # Unit tests with mocked IEventPublisher
+│   └── SupplyChainX.UnitTests/ # Unit tests for Services, Handlers & Idempotency
 ├── docs/                    # Architecture and developer documentation
 ├── infrastructure/          # Container orchestration (Docker Compose)
 │   ├── docker-compose.yml
@@ -76,30 +80,4 @@ Start development infrastructure (PostgreSQL on port `5433`, Kafka on port `9092
 cd infrastructure
 cp .env.example .env
 docker compose up -d
-```
-
----
-
-## Local Event Verification via Kafka CLI
-
-To consume and verify published events in real-time:
-
-```bash
-# Product Events
-docker exec supplychainx-kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic supplychainx.product.events \
-  --from-beginning
-
-# Warehouse Events
-docker exec supplychainx-kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic supplychainx.warehouse.events \
-  --from-beginning
-
-# Inventory Events
-docker exec supplychainx-kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic supplychainx.inventory.events \
-  --from-beginning
 ```

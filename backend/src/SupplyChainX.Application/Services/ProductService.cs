@@ -38,7 +38,6 @@ public class ProductService : IProductService
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Publish ProductCreatedEvent only after successful DB persist
         var @event = new ProductCreatedEvent(
             EventId: Guid.NewGuid(),
             OccurredOnUtc: DateTime.UtcNow,
@@ -114,7 +113,6 @@ public class ProductService : IProductService
         product.Update(request.Sku, request.Name, request.Description, request.UnitPrice, request.IsActive);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Publish ProductUpdatedEvent only after successful DB persist
         var @event = new ProductUpdatedEvent(
             EventId: Guid.NewGuid(),
             OccurredOnUtc: DateTime.UtcNow,
@@ -145,8 +143,18 @@ public class ProductService : IProductService
             throw new ConflictException($"Cannot delete product '{id}' because associated inventory records exist.");
         }
 
+        var deletedSku = product.Sku;
         _dbContext.Products.Remove(product);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var @event = new ProductDeletedEvent(
+            EventId: Guid.NewGuid(),
+            OccurredOnUtc: DateTime.UtcNow,
+            ProductId: id,
+            Sku: deletedSku
+        );
+
+        await _eventPublisher.PublishAsync(_topicOptions.ProductEvents, id.ToString(), @event, cancellationToken);
     }
 
     private static ProductDto MapToDto(Product p) =>

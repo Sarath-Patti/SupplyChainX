@@ -6,6 +6,7 @@ using SupplyChainX.Application.Common.Configuration;
 using SupplyChainX.Application.Common.Interfaces;
 using SupplyChainX.Infrastructure.Messaging.Kafka;
 using SupplyChainX.Infrastructure.Persistence;
+using SupplyChainX.Infrastructure.Services;
 
 namespace SupplyChainX.Infrastructure;
 
@@ -33,6 +34,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<ISupplyChainXDbContext>(provider => provider.GetRequiredService<SupplyChainXDbContext>());
+        services.AddScoped<IIdempotencyService, IdempotencyService>();
 
         // 2. Health Checks
         services.AddHealthChecks()
@@ -40,12 +42,13 @@ public static class DependencyInjection
                 name: "database",
                 tags: new[] { "db", "postgresql" });
 
-        // 3. Kafka Messaging Configuration
+        // 3. Kafka Producer Messaging Configuration
         var bootstrapServers = configuration["Kafka:BootstrapServers"]
             ?? Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS")
             ?? "localhost:9092";
 
         services.Configure<KafkaTopicOptions>(configuration.GetSection(KafkaTopicOptions.SectionName));
+        services.Configure<KafkaConsumerOptions>(configuration.GetSection(KafkaConsumerOptions.SectionName));
 
         services.AddSingleton<IProducer<string, string>>(sp =>
         {
@@ -62,6 +65,9 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IEventPublisher, KafkaEventPublisher>();
+
+        // 4. Kafka Consumer Hosted Service
+        services.AddHostedService<KafkaConsumerBackgroundService>();
 
         return services;
     }
