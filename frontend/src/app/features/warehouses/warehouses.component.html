@@ -1,0 +1,192 @@
+<div class="warehouses-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Warehouse Management</h1>
+      <p class="page-subtitle">Configure regional fulfillment centers, storage locations, and operational statuses</p>
+    </div>
+    <button class="action-btn primary" (click)="openCreateModal()">
+      <span>➕</span> Add New Warehouse
+    </button>
+  </div>
+
+  <div class="toast-success" *ngIf="successMessage">
+    <span>✅</span> {{ successMessage }}
+  </div>
+
+  <div class="toolbar-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search Warehouse Name or Location..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Status:</label>
+      <select #statusSelect (change)="onFilterChange(statusSelect.value)">
+        <option value="all">All Warehouses</option>
+        <option value="active">Active Only</option>
+        <option value="inactive">Inactive Only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading Warehouses...</p>
+  </div>
+
+  <div class="error-banner" *ngIf="errorMessage && !isLoading">
+    <span>⚠️</span> {{ errorMessage }}
+  </div>
+
+  <div class="table-card" *ngIf="!isLoading && pagedWarehouses">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Warehouse Name</th>
+          <th>Location / Region</th>
+          <th>Status</th>
+          <th>Created At</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let w of pagedWarehouses.items">
+          <td class="name-cell">
+            <strong>{{ w.name }}</strong>
+          </td>
+          <td class="location-cell font-mono">{{ w.location }}</td>
+          <td>
+            <span class="status-badge" [class.active]="w.isActive">
+              {{ w.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="date-cell">{{ w.createdAtUtc | date:'short' }}</td>
+          <td class="actions-cell">
+            <button class="btn-icon edit" (click)="openEditModal(w)" title="Edit Warehouse">✏️</button>
+            <button class="btn-icon delete" (click)="openDeleteModal(w)" title="Delete Warehouse">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="empty-state" *ngIf="pagedWarehouses.items.length === 0">
+      <div class="empty-icon">🏭</div>
+      <h3>No Warehouses Found</h3>
+      <p>No warehouses match the search criteria or database is empty.</p>
+      <button class="action-btn primary" (click)="openCreateModal()">Add First Warehouse</button>
+    </div>
+
+    <div class="pagination-bar" *ngIf="pagedWarehouses.items.length > 0">
+      <div class="page-info">
+        Showing Page {{ pagedWarehouses.page }} of {{ pagedWarehouses.totalPages }} (Total {{ pagedWarehouses.totalCount }} items)
+      </div>
+      <div class="page-buttons">
+        <button
+          class="page-btn"
+          [disabled]="!pagedWarehouses.hasPreviousPage"
+          (click)="changePage(pagedWarehouses.page - 1)">
+          ◀ Previous
+        </button>
+        <button
+          class="page-btn"
+          [disabled]="!pagedWarehouses.hasNextPage"
+          (click)="changePage(pagedWarehouses.page + 1)">
+          Next ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Modal -->
+  <div class="modal-backdrop" *ngIf="showCreateModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🏭 Add Warehouse</h2>
+        <button class="close-btn" (click)="closeCreateModal()">✖</button>
+      </div>
+      <form (ngSubmit)="submitCreate()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Warehouse Name *</label>
+            <input type="text" [(ngModel)]="createModel.name" name="name" required placeholder="e.g. Central Distribution Hub" />
+          </div>
+          <div class="form-group">
+            <label>Location / City / Country *</label>
+            <input type="text" [(ngModel)]="createModel.location" name="location" required placeholder="e.g. Seattle, WA, USA" />
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="createModel.isActive" name="isActive" />
+              <span>Warehouse Is Active</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary" (click)="closeCreateModal()">Cancel</button>
+          <button type="submit" class="action-btn primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Saving...' : 'Save Warehouse' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-backdrop" *ngIf="showEditModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>✏️ Edit Warehouse</h2>
+        <button class="close-btn" (click)="closeEditModal()">✖</button>
+      </div>
+      <form (ngSubmit)="submitEdit()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Warehouse Name *</label>
+            <input type="text" [(ngModel)]="editModel.name" name="name" required />
+          </div>
+          <div class="form-group">
+            <label>Location / City / Country *</label>
+            <input type="text" [(ngModel)]="editModel.location" name="location" required />
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="editModel.isActive" name="isActive" />
+              <span>Warehouse Is Active</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="action-btn primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Updating...' : 'Update Warehouse' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-backdrop" *ngIf="showDeleteModal">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h2>🗑️ Delete Warehouse</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">✖</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete warehouse <strong>{{ selectedWarehouse?.name }}</strong>?</p>
+        <p class="warning-text">This will fail if inventory records are linked to this warehouse.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="action-btn secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="action-btn danger" [disabled]="isSubmitting" (click)="confirmDelete()">
+          {{ isSubmitting ? 'Deleting...' : 'Delete Warehouse' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

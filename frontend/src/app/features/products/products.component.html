@@ -1,0 +1,224 @@
+<div class="products-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Product Catalog</h1>
+      <p class="page-subtitle">Manage enterprise product definitions, SKUs, and unit pricing</p>
+    </div>
+    <button class="action-btn primary" (click)="openCreateModal()">
+      <span>➕</span> Create New Product
+    </button>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-success" *ngIf="successMessage">
+    <span>✅</span> {{ successMessage }}
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="toolbar-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search SKU or Product Name..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Status:</label>
+      <select #statusSelect (change)="onFilterChange(statusSelect.value)">
+        <option value="all">All Products</option>
+        <option value="active">Active Only</option>
+        <option value="inactive">Inactive Only</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading Product Catalog...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-banner" *ngIf="errorMessage && !isLoading">
+    <span>⚠️</span> {{ errorMessage }}
+  </div>
+
+  <!-- Products Data Table -->
+  <div class="table-card" *ngIf="!isLoading && pagedProducts">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Description</th>
+          <th>Unit Price</th>
+          <th>Status</th>
+          <th>Created At</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of pagedProducts.items">
+          <td class="sku-cell font-mono">{{ p.sku }}</td>
+          <td class="name-cell">
+            <strong>{{ p.name }}</strong>
+          </td>
+          <td class="desc-cell">{{ p.description || '—' }}</td>
+          <td class="price-cell font-mono">${{ p.unitPrice | number:'1.2-2' }}</td>
+          <td>
+            <span class="status-badge" [class.active]="p.isActive">
+              {{ p.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="date-cell">{{ p.createdAtUtc | date:'short' }}</td>
+          <td class="actions-cell">
+            <button class="btn-icon edit" (click)="openEditModal(p)" title="Edit Product">✏️</button>
+            <button class="btn-icon delete" (click)="openDeleteModal(p)" title="Delete Product">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="pagedProducts.items.length === 0">
+      <div class="empty-icon">📦</div>
+      <h3>No Products Found</h3>
+      <p>No products match the selected search criteria or database is empty.</p>
+      <button class="action-btn primary" (click)="openCreateModal()">Add First Product</button>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-bar" *ngIf="pagedProducts.items.length > 0">
+      <div class="page-info">
+        Showing Page {{ pagedProducts.page }} of {{ pagedProducts.totalPages }} (Total {{ pagedProducts.totalCount }} items)
+      </div>
+      <div class="page-buttons">
+        <button
+          class="page-btn"
+          [disabled]="!pagedProducts.hasPreviousPage"
+          (click)="changePage(pagedProducts.page - 1)">
+          ◀ Previous
+        </button>
+        <button
+          class="page-btn"
+          [disabled]="!pagedProducts.hasNextPage"
+          (click)="changePage(pagedProducts.page + 1)">
+          Next ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Product Modal -->
+  <div class="modal-backdrop" *ngIf="showCreateModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>📦 Create Product</h2>
+        <button class="close-btn" (click)="closeCreateModal()">✖</button>
+      </div>
+      <form (ngSubmit)="submitCreate()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>SKU (Stock Keeping Unit) *</label>
+            <input type="text" [(ngModel)]="createModel.sku" name="sku" required placeholder="e.g. SKU-PROD-1001" />
+          </div>
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" [(ngModel)]="createModel.name" name="name" required placeholder="e.g. Ergonomic Standing Desk" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea [(ngModel)]="createModel.description" name="description" rows="3" placeholder="Product details and specifications..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Unit Price ($) *</label>
+              <input type="number" step="0.01" min="0" [(ngModel)]="createModel.unitPrice" name="unitPrice" required />
+            </div>
+            <div class="form-group flex-1 checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="createModel.isActive" name="isActive" />
+                <span>Product Is Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary" (click)="closeCreateModal()">Cancel</button>
+          <button type="submit" class="action-btn primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Creating...' : 'Save Product' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div class="modal-backdrop" *ngIf="showEditModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>✏️ Edit Product</h2>
+        <button class="close-btn" (click)="closeEditModal()">✖</button>
+      </div>
+      <form (ngSubmit)="submitEdit()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>SKU *</label>
+            <input type="text" [(ngModel)]="editModel.sku" name="sku" required />
+          </div>
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" [(ngModel)]="editModel.name" name="name" required />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea [(ngModel)]="editModel.description" name="description" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Unit Price ($) *</label>
+              <input type="number" step="0.01" min="0" [(ngModel)]="editModel.unitPrice" name="unitPrice" required />
+            </div>
+            <div class="form-group flex-1 checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editModel.isActive" name="isActive" />
+                <span>Product Is Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="action-btn primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Updating...' : 'Update Product' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Product Modal -->
+  <div class="modal-backdrop" *ngIf="showDeleteModal">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h2>🗑️ Delete Product</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">✖</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete product <strong>{{ selectedProduct?.name }}</strong> (SKU: {{ selectedProduct?.sku }})?</p>
+        <p class="warning-text">This action will publish a ProductDeletedEvent to Kafka.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="action-btn secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="action-btn danger" [disabled]="isSubmitting" (click)="confirmDelete()">
+          {{ isSubmitting ? 'Deleting...' : 'Delete Product' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

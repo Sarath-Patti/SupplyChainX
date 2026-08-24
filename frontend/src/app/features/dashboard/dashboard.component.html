@@ -1,0 +1,219 @@
+<div class="dashboard-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Operations & Kafka Dashboard</h1>
+      <p class="page-subtitle">Real-time health, event metrics, consumer group status & infrastructure telemetry</p>
+    </div>
+    <div class="header-actions">
+      <span class="last-sync">Updated: {{ lastUpdated | date:'mediumTime' }}</span>
+      <button class="toggle-btn" [class.active]="autoRefresh" (click)="toggleAutoRefresh()">
+        <span class="dot"></span> {{ autoRefresh ? 'Auto-Refresh ON (5s)' : 'Auto-Refresh OFF' }}
+      </button>
+      <button class="action-btn primary" (click)="loadData()">🔄 Refresh Now</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading && !healthData">
+    <div class="spinner"></div>
+    <p>Connecting to SupplyChainX Backend Telemetry...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-banner" *ngIf="errorMessage">
+    <span class="error-icon">⚠️</span>
+    <div class="error-info">
+      <strong>Backend Telemetry Offline</strong>
+      <p>{{ errorMessage }}</p>
+    </div>
+    <button class="retry-btn" (click)="loadData()">Retry Connection</button>
+  </div>
+
+  <ng-container *ngIf="healthData && metricsData">
+    <!-- Top Health Probes Row -->
+    <div class="probes-grid">
+      <!-- API Health Card -->
+      <div class="probe-card" [class.healthy]="healthData.status === 'Healthy'">
+        <div class="probe-header">
+          <span class="probe-label">API Health Check</span>
+          <span class="badge" [class.healthy]="healthData.status === 'Healthy'">{{ healthData.status }}</span>
+        </div>
+        <div class="probe-body">
+          <div class="probe-val">GET /health</div>
+          <div class="probe-meta">{{ healthData.service }} {{ healthData.version }}</div>
+        </div>
+      </div>
+
+      <!-- Readiness Card -->
+      <div class="probe-card" [class.healthy]="readinessData?.status === 'Healthy'">
+        <div class="probe-header">
+          <span class="probe-label">Readiness Probe</span>
+          <span class="badge" [class.healthy]="readinessData?.status === 'Healthy'">{{ readinessData?.status }}</span>
+        </div>
+        <div class="probe-body">
+          <div class="probe-val">GET /health/ready</div>
+          <div class="probe-meta">PostgreSQL + Kafka Ready</div>
+        </div>
+      </div>
+
+      <!-- Liveness Card -->
+      <div class="probe-card" [class.healthy]="livenessData?.status === 'Healthy'">
+        <div class="probe-header">
+          <span class="probe-label">Liveness Probe</span>
+          <span class="badge" [class.healthy]="livenessData?.status === 'Healthy'">{{ livenessData?.status }}</span>
+        </div>
+        <div class="probe-body">
+          <div class="probe-val">GET /health/live</div>
+          <div class="probe-meta">API Host Process Alive</div>
+        </div>
+      </div>
+
+      <!-- Kafka Consumer Status Card -->
+      <div class="probe-card" [class.healthy]="metricsData.consumerStatus.isRunning">
+        <div class="probe-header">
+          <span class="probe-label">Kafka Consumer Group</span>
+          <span class="badge" [class.healthy]="metricsData.consumerStatus.isRunning">
+            {{ metricsData.consumerStatus.isRunning ? 'RUNNING' : 'STOPPED' }}
+          </span>
+        </div>
+        <div class="probe-body">
+          <div class="probe-val">{{ metricsData.consumerStatus.consumerGroupId }}</div>
+          <div class="probe-meta">3 Subscribed Event Topics</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operational Telemetry Counter Cards -->
+    <div class="section-title">
+      <h3>📈 Event Stream Throughput & Idempotency Metrics</h3>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card cyan">
+        <div class="metric-icon">📥</div>
+        <div class="metric-info">
+          <span class="metric-label">Events Consumed</span>
+          <span class="metric-value">{{ metricsData.metrics.eventsConsumed }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card green">
+        <div class="metric-icon">✅</div>
+        <div class="metric-info">
+          <span class="metric-label">Successfully Processed</span>
+          <span class="metric-value">{{ metricsData.metrics.eventsProcessed }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card blue">
+        <div class="metric-icon">🛡️</div>
+        <div class="metric-info">
+          <span class="metric-label">Duplicates Skipped</span>
+          <span class="metric-value">{{ metricsData.metrics.duplicateEventsSkipped }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card yellow">
+        <div class="metric-icon">🔄</div>
+        <div class="metric-info">
+          <span class="metric-label">Retry Attempts</span>
+          <span class="metric-value">{{ metricsData.metrics.retryAttempts }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card orange">
+        <div class="metric-icon">💀</div>
+        <div class="metric-info">
+          <span class="metric-label">DLQ Published</span>
+          <span class="metric-value">{{ metricsData.metrics.eventsPublishedToDlq }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card red">
+        <div class="metric-icon">🚫</div>
+        <div class="metric-info">
+          <span class="metric-label">Malformed Events</span>
+          <span class="metric-value">{{ metricsData.metrics.malformedEvents }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Infrastructure & Component Diagnostics -->
+    <div class="diagnostics-grid">
+      <!-- Active Infrastructure Checks Panel -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>🔌 Active Health Diagnostics</h3>
+        </div>
+        <div class="checks-list">
+          <div class="check-item" *ngFor="let check of healthData.checks">
+            <div class="check-left">
+              <span class="status-dot" [class.healthy]="check.status === 'Healthy'"></span>
+              <div>
+                <strong class="check-name">{{ check.name | uppercase }}</strong>
+                <p class="check-desc">{{ check.description }}</p>
+              </div>
+            </div>
+            <span class="tag-status" [class.healthy]="check.status === 'Healthy'">{{ check.status }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kafka Consumer Status Panel -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>⚡ Consumer Service Details</h3>
+        </div>
+        <div class="details-list">
+          <div class="detail-row">
+            <span class="detail-key">Subscribed Topics:</span>
+            <div class="topic-tags">
+              <span class="topic-tag" *ngFor="let t of metricsData.consumerStatus.subscribedTopics">{{ t }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Last Event Consumed:</span>
+            <span class="detail-val">{{ metricsData.consumerStatus.lastEventConsumedAtUtc ? (metricsData.consumerStatus.lastEventConsumedAtUtc | date:'medium') : 'None yet' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Last Event Processed:</span>
+            <span class="detail-val">{{ metricsData.consumerStatus.lastEventProcessedAtUtc ? (metricsData.consumerStatus.lastEventProcessedAtUtc | date:'medium') : 'None yet' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="metricsData.consumerStatus.lastProcessingFailureAtUtc">
+            <span class="detail-key danger">Last Failure:</span>
+            <span class="detail-val danger">{{ metricsData.consumerStatus.lastProcessingFailureAtUtc | date:'medium' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="metricsData.consumerStatus.lastProcessingFailureReason">
+            <span class="detail-key danger">Failure Reason:</span>
+            <span class="detail-val danger-box">{{ metricsData.consumerStatus.lastProcessingFailureReason }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Runtime & Memory Panel -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>🖥️ ASP.NET Core Runtime Telemetry</h3>
+        </div>
+        <div class="details-list">
+          <div class="detail-row">
+            <span class="detail-key">Process Uptime:</span>
+            <span class="detail-val highlight">{{ formatUptime(metricsData.system.uptimeSeconds) }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Process ID (PID):</span>
+            <span class="detail-val mono">{{ metricsData.system.processId }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Working Set Memory:</span>
+            <span class="detail-val highlight">{{ formatBytes(metricsData.system.workingSetBytes) }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Active Threads:</span>
+            <span class="detail-val">{{ metricsData.system.threadCount }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

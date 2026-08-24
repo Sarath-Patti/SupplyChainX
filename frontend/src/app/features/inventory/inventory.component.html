@@ -1,0 +1,173 @@
+<div class="inventory-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Inventory Stock Control</h1>
+      <p class="page-subtitle">Real-time stock quantities, reservations, thresholds, and inventory allocation events</p>
+    </div>
+    <button class="action-btn primary" (click)="openAdjustModal()">
+      <span>⚡</span> Adjust Stock Level
+    </button>
+  </div>
+
+  <div class="toast-success" *ngIf="successMessage">
+    <span>✅</span> {{ successMessage }}
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="toolbar-card">
+    <div class="filter-group">
+      <label>Product Filter:</label>
+      <select [(ngModel)]="selectedProductId" (change)="onFilterChange()">
+        <option [ngValue]="null">All Products</option>
+        <option *ngFor="let p of productsList" [value]="p.id">{{ p.name }} ({{ p.sku }})</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Warehouse Filter:</label>
+      <select [(ngModel)]="selectedWarehouseId" (change)="onFilterChange()">
+        <option [ngValue]="null">All Warehouses</option>
+        <option *ngFor="let w of warehousesList" [value]="w.id">{{ w.name }} ({{ w.location }})</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading Inventory Records...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-banner" *ngIf="errorMessage && !isLoading">
+    <span>⚠️</span> {{ errorMessage }}
+  </div>
+
+  <!-- Inventory Table -->
+  <div class="table-card" *ngIf="!isLoading && pagedInventory">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Product Info</th>
+          <th>Warehouse Location</th>
+          <th>Available Stock</th>
+          <th>Reserved Stock</th>
+          <th>Min Threshold</th>
+          <th>Stock Health</th>
+          <th>Version</th>
+          <th class="actions-col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of pagedInventory.items">
+          <td class="name-cell">
+            <strong>{{ item.productName || 'Product' }}</strong>
+            <div class="sku-tag font-mono">{{ item.productSku }}</div>
+          </td>
+          <td class="location-cell">
+            <strong>{{ item.warehouseName || 'Warehouse' }}</strong>
+          </td>
+          <td class="quantity-cell available font-mono">
+            {{ item.availableQuantity }}
+          </td>
+          <td class="quantity-cell reserved font-mono">
+            {{ item.reservedQuantity }}
+          </td>
+          <td class="quantity-cell font-mono">{{ item.minimumStockThreshold }}</td>
+          <td>
+            <span
+              class="stock-badge"
+              [class.low]="item.availableQuantity < item.minimumStockThreshold"
+              [class.healthy]="item.availableQuantity >= item.minimumStockThreshold">
+              {{ item.availableQuantity < item.minimumStockThreshold ? '⚠️ LOW STOCK' : 'HEALTHY' }}
+            </span>
+          </td>
+          <td class="font-mono text-muted">v{{ item.version }}</td>
+          <td class="actions-cell">
+            <button class="action-btn sm" (click)="openAdjustModal(item)">⚡ Adjust</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="empty-state" *ngIf="pagedInventory.items.length === 0">
+      <div class="empty-icon">📋</div>
+      <h3>No Inventory Records Found</h3>
+      <p>No stock records found for the selected product/warehouse filters.</p>
+      <button class="action-btn primary" (click)="openAdjustModal()">Perform Stock Adjustment</button>
+    </div>
+
+    <div class="pagination-bar" *ngIf="pagedInventory.items.length > 0">
+      <div class="page-info">
+        Showing Page {{ pagedInventory.page }} of {{ pagedInventory.totalPages }} (Total {{ pagedInventory.totalCount }} items)
+      </div>
+      <div class="page-buttons">
+        <button
+          class="page-btn"
+          [disabled]="!pagedInventory.hasPreviousPage"
+          (click)="changePage(pagedInventory.page - 1)">
+          ◀ Previous
+        </button>
+        <button
+          class="page-btn"
+          [disabled]="!pagedInventory.hasNextPage"
+          (click)="changePage(pagedInventory.page + 1)">
+          Next ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjust Stock Modal -->
+  <div class="modal-backdrop" *ngIf="showAdjustModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚡ Adjust Inventory Stock</h2>
+        <button class="close-btn" (click)="closeAdjustModal()">✖</button>
+      </div>
+      <form (ngSubmit)="submitAdjust()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Product *</label>
+            <select [(ngModel)]="adjustModel.productId" name="productId" required>
+              <option value="" disabled>Select Product</option>
+              <option *ngFor="let p of productsList" [value]="p.id">{{ p.name }} ({{ p.sku }})</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Warehouse *</label>
+            <select [(ngModel)]="adjustModel.warehouseId" name="warehouseId" required>
+              <option value="" disabled>Select Warehouse</option>
+              <option *ngFor="let w of warehousesList" [value]="w.id">{{ w.name }} ({{ w.location }})</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Adjustment Type *</label>
+              <select [(ngModel)]="adjustModel.adjustmentType" name="adjustmentType" required>
+                <option [ngValue]="1">Increase Available Stock (+)</option>
+                <option [ngValue]="2">Decrease Available Stock (-)</option>
+                <option [ngValue]="3">Reserve Stock (🔒)</option>
+                <option [ngValue]="4">Release Reserved Stock (🔓)</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label>Quantity *</label>
+              <input type="number" min="1" [(ngModel)]="adjustModel.quantity" name="quantity" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary" (click)="closeAdjustModal()">Cancel</button>
+          <button type="submit" class="action-btn primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Adjusting...' : 'Execute Stock Adjustment' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
