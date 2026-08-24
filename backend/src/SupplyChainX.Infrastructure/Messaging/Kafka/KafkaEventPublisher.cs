@@ -8,6 +8,7 @@ namespace SupplyChainX.Infrastructure.Messaging.Kafka;
 /// <summary>
 /// Infrastructure implementation of IEventPublisher using Confluent.Kafka producer.
 /// Serializes domain events to JSON and publishes them to configured Kafka topics asynchronously.
+/// Also supports raw string/JSON publishing with Kafka headers for Dead-Letter Queue (DLQ) support.
 /// </summary>
 public class KafkaEventPublisher : IEventPublisher
 {
@@ -74,6 +75,56 @@ public class KafkaEventPublisher : IEventPublisher
         {
             _logger.LogError(ex, "Unexpected error publishing event {EventType} to Kafka topic {Topic}",
                 eventType, topic);
+            throw;
+        }
+    }
+
+    public async Task PublishRawAsync(
+        string topic,
+        string key,
+        string rawJson,
+        IDictionary<string, string>? headers = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            throw new ArgumentException("Topic name cannot be empty.", nameof(topic));
+        }
+
+        var message = new Message<string, string>
+        {
+            Key = key ?? string.Empty,
+            Value = rawJson ?? string.Empty
+        };
+
+        if (headers != null && headers.Count > 0)
+        {
+            message.Headers = new Headers();
+            foreach (var kvp in headers)
+            {
+                message.Headers.Add(kvp.Key, System.Text.Encoding.UTF8.GetBytes(kvp.Value ?? string.Empty));
+            }
+        }
+
+        try
+        {
+            _logger.LogInformation("Publishing raw payload to Kafka topic {Topic} with key {Key}", topic, key);
+
+            var result = await _producer.ProduceAsync(topic, message, cancellationToken);
+
+            _logger.LogInformation(
+                "Successfully published raw payload to Kafka topic {Topic} [Partition {Partition} @ Offset {Offset}]",
+                result.Topic, result.Partition.Value, result.Offset.Value);
+        }
+        catch (ProduceException<string, string> ex)
+        {
+            _logger.LogError(ex, "Failed to publish raw payload to Kafka topic {Topic} with key {Key}. Error: {Reason}",
+                topic, key, ex.Error.Reason);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error publishing raw payload to Kafka topic {Topic}", topic);
             throw;
         }
     }

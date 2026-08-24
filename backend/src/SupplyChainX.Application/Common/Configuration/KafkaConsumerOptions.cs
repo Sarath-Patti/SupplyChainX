@@ -9,4 +9,5 @@ public class KafkaConsumerOptions
     public string AutoOffsetReset { get; set; } = "Earliest";
     public int MaxRetryAttempts { get; set; } = 3;
     public int RetryDelayMs { get; set; } = 1000;
+    public bool UseExponentialBackoff { get; set; } = true;
 }

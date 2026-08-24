@@ -49,6 +49,7 @@ public static class DependencyInjection
 
         services.Configure<KafkaTopicOptions>(configuration.GetSection(KafkaTopicOptions.SectionName));
         services.Configure<KafkaConsumerOptions>(configuration.GetSection(KafkaConsumerOptions.SectionName));
+        services.Configure<KafkaRetryOptions>(configuration.GetSection(KafkaRetryOptions.SectionName));
 
         services.AddSingleton<IProducer<string, string>>(sp =>
         {
