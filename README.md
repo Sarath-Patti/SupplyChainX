@@ -1,10 +1,10 @@
 # SupplyChainX
 
-**Version**: `v0.8.0`  
-**Milestone**: `v0.8 – Angular Frontend & Operations Dashboard`  
-**Status**: `v0.8 – Verified`
+**Version**: `v0.9.0`<br/>
+**Milestone**: `v0.9 – Authentication & Role-Based Authorization`<br/>
+**Status**: `v0.9 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, and an Angular 19 management dashboard.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, and an Angular 19 management dashboard.
 
 ---
 
@@ -13,19 +13,19 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 ```
   ┌──────────────────────────────────────────────────────────┐
   │         Angular 19 Frontend (Port 4200)                  │
-  │   Dashboard / Products / Warehouses / Inventory Pages   │
+  │   Dashboard / Products / Warehouses / Inventory / Auth   │
   └────────────────────────────┬─────────────────────────────┘
-                               │ (REST API & X-Correlation-ID)
+                               │ (REST API, JWT Bearer & X-Correlation-ID)
                                ▼
   ┌──────────────────────────────────────────────────────────┐
   │              SupplyChainX.Api (.NET 8)                   │
-  │     Controllers, Middleware, Health & Metrics Endpoints  │
+  │     Controllers, Auth & Authz Middleware, Observability  │
   └────────────┬────────────────────────────────┬────────────┘
                │                                │
                ▼                                ▼
   ┌──────────────────────────┐    ┌──────────────────────────┐
   │ SupplyChainX.Application │    │ PostgreSQL Database (EF) │
-  │  Services & Event Logic  │    │  Entities & Idempotency  │
+  │  Services & Auth Logic   │    │  Entities, Roles & Idem  │
   └────────────┬─────────────┘    └──────────────────────────┘
                │ (Publish Events)
                ▼
@@ -110,6 +110,21 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Inventory Control & Stock Allocation (`/inventory`)**: Stock overview with low stock alerts (`availableQuantity < threshold`), product/warehouse filter dropdowns, and inventory adjustment modal supporting Increase, Decrease, Reserve, and Release allocation actions.
 - **Backend & Frontend Verification**: Frontend build passed (`ng build`), backend build passed (0 errors, 0 warnings), 64/64 backend unit tests passed, and manual browser verification completed across all routes.
 
+### **v0.9 — Authentication & Role-Based Authorization**
+- **JWT Bearer Authentication**: User registration (`POST /api/v1/auth/register`), user login (`POST /api/v1/auth/login`), and current user profile (`GET /api/v1/auth/me`) using JWT tokens containing signed identity and role claims (`ClaimTypes.Role`).
+- **Secure Password Hashing**: PBKDF2 password hashing implementation using `Microsoft.AspNetCore.Identity.PasswordHasher<User>`.
+- **Role-Based Authorization Policies**:
+  - **Viewer**: Read-only access to Products, Warehouses, and Inventory (`GET /api/v1/*`). Protected write operations (`POST`, `PUT`, `DELETE`) return HTTP 403 Forbidden.
+  - **Operator**: Full read access plus authorized write operations for Product, Warehouse, and Inventory management (`POST`, `PUT`, `DELETE`).
+  - **Admin**: Full system access, including protected operational metrics (`GET /api/v1/metrics`).
+- **Protected API Endpoints**: Public access restricted to health probes (`/health`, `/health/ready`, `/health/live`). Unauthenticated requests to protected endpoints return HTTP 401 Unauthorized.
+- **PostgreSQL Role Persistence**: EF Core migration (`AddAuthAndRolesTable`) creating `Users`, `Roles`, and `UserRoles` join tables with seeded roles (`Admin`, `Operator`, `Viewer`). Persisted roles verified in PostgreSQL:
+  - `viewer_manual_v09` → `Viewer`
+  - `operator_manual_v09` → `Operator`
+  - `admin_manual_v09` → `Admin`
+- **Angular Client Authentication**: Integrated `AuthService` state management, functional `authInterceptor` injecting `Authorization: Bearer` headers, `authGuard` / `roleGuard` route protection, `/login` & `/register` views, header user badge/logout button, and permission-based action control (`authService.canWrite()`).
+- **Automated & Manual Verification**: Backend build passed (0 errors, 0 warnings), 82/82 backend unit tests passed, and live terminal HTTP verification confirmed 401 unauthenticated enforcement, Viewer read (200) / write (403), Operator write (201), and Admin metrics (200).
+
 ---
 
 ## Technology Stack
@@ -117,6 +132,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture, Angular Router, RxJS)
 - **Backend Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
 - **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
+- **Authentication & Security**: JWT Bearer Authentication (`Microsoft.AspNetCore.Authentication.JwtBearer`), PBKDF2 Password Hashing (`PasswordHasher<User>`), Role-Based Authorization
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
 - **Messaging**: Apache Kafka 3.8.0 (`Confluent.Kafka` 2.6.0)
 - **Observability & Health**: ASP.NET Core Health Checks, `System.Diagnostics.Metrics`, Serilog
@@ -129,40 +145,46 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v0.8)
+├── frontend/                                 # Angular Client Application (v0.8 / v0.9)
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── core/                         # Models & HTTP API Services
-│   │   │   ├── features/                     # Dashboard, Products, Warehouses, Inventory
-│   │   │   └── layout/                       # Layout & Navigation
+│   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
+│   │   │   │   ├── guards/                   # authGuard, roleGuard
+│   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection)
+│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory Models
+│   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService
+│   │   │   ├── features/                     # Auth (Login/Register), Dashboard, Products, Warehouses, Inventory
+│   │   │   └── layout/                       # Layout & Navigation Header
 │   │   └── environments/                     # Environment configuration (apiBaseUrl)
 │   └── package.json
 ├── backend/                                  # ASP.NET Core Web API Solution
 │   ├── SupplyChainX.sln
 │   └── src/
 │       ├── SupplyChainX.Api/                 # Controllers, Middleware & Host Configuration
-│       │   ├── Controllers/                  # HealthController, MetricsController, Domain Controllers
+│       │   ├── Controllers/                  # AuthController, HealthController, MetricsController, Domain Controllers
 │       │   ├── Middleware/                   # CorrelationIdMiddleware, GlobalExceptionHandlingMiddleware
 │       │   ├── Conventions/                  # ApiVersionRouteConvention
 │       │   └── Program.cs
 │       ├── SupplyChainX.Application/         # Interfaces, DTOs, Handlers & Configuration Options
 │       │   ├── Common/
-│       │   │   ├── Configuration/            # KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
+│       │   │   ├── Configuration/            # JwtOptions, KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
 │       │   │   ├── Events/                   # Domain Event Contracts
-│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IEventPublisher, IKafkaConsumerStatusService
+│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAuthService, IJwtTokenGenerator, IPasswordService
 │       │   │   └── Models/                   # KafkaConsumerStatusDto
+│       │   ├── DTOs/                         # AuthDtos (RegisterRequest, LoginRequest, UserDto, AuthResponse)
 │       │   └── EventHandlers/                # Product, Warehouse & Inventory Event Handlers
 │       ├── SupplyChainX.Domain/              # Core Domain Entities & Custom Exceptions
-│       │   ├── Entities/                     # Product, Warehouse, Inventory, ProcessedEvent
+│       │   ├── Entities/                     # User, Role, UserRole, Product, Warehouse, Inventory, ProcessedEvent
 │       │   └── Exceptions/                   # DomainException, NotFoundException, ConflictException
 │       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging & Health Checks
 │           ├── Health/                       # KafkaHealthCheck
 │           ├── Messaging/Kafka/              # KafkaEventPublisher, KafkaConsumerBackgroundService, KafkaConsumerStatusService
-│           └── Persistence/                  # SupplyChainXDbContext & Migrations
+│           ├── Services/                     # AuthService, JwtTokenGenerator, PasswordService
+│           └── Persistence/                  # SupplyChainXDbContext & Migrations (AddAuthAndRolesTable)
 ├── infrastructure/                           # Container Orchestration
 │   └── docker-compose.yml                    # PostgreSQL & Kafka Services
 ├── tests/                                    # Automated Test Suites
-│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Health & Metrics
+│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, Health & Metrics
 ├── LICENSE                                   # MIT License
 └── README.md                                 # Project Documentation
 ```
@@ -208,9 +230,12 @@ npm start
 ## Verified Invariants & Quality Standards
 
 - **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings.
-- **Test Suite**: 64 / 64 Automated Unit Tests Passing.
-- **Frontend UI & Integration**: All 4 client routes (`/dashboard`, `/products`, `/warehouses`, `/inventory`) integrated with real ASP.NET Core backend endpoints.
-- **Endpoints**: `/health`, `/health/ready`, `/health/live`, `/api/v1/metrics` returning HTTP 200 OK.
+- **Test Suite**: 82 / 82 Automated Unit Tests Passing.
+- **Authentication & Authorization**: JWT token issuance, identity/role claims, and PBKDF2 password hashing verified.
+- **Role Permissions & Enforcement**: Unauthenticated endpoints return HTTP 401; Viewer read access returns HTTP 200, write attempts return HTTP 403 Forbidden; Operator write operations return HTTP 201/200; Admin metrics returns HTTP 200 OK.
+- **PostgreSQL Role Persistence**: User-to-role relationships persisted and verified in `Users`, `Roles`, and `UserRoles` database tables.
+- **Frontend UI & Integration**: Angular auth interceptor, route guards, and permission-conditioned action buttons integrated with real ASP.NET Core backend endpoints.
+- **Endpoints**: `/health`, `/health/ready`, `/health/live` remaining publicly accessible.
 - **Kafka Resilience**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish.
 - **Consumer Lag**: Verified consumer lag returns to `0` across active topic partitions.
 - **Idempotency**: PostgreSQL `ProcessedEvents` persistence verified with zero duplicate processing.
