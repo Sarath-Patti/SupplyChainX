@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../core/services/product.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Product, CreateProductRequest, UpdateProductRequest } from '../../core/models/product.model';
 import { PagedResult } from '../../core/models/common.model';
 
@@ -49,7 +50,10 @@ export class ProductsComponent implements OnInit {
   selectedProduct: Product | null = null;
   isSubmitting = false;
 
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    public readonly authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.loadProducts();
@@ -97,6 +101,7 @@ export class ProductsComponent implements OnInit {
 
   // Create Modal Actions
   openCreateModal(): void {
+    if (!this.authService.canWrite()) return;
     this.createModel = {
       sku: '',
       name: '',
@@ -133,6 +138,7 @@ export class ProductsComponent implements OnInit {
 
   // Edit Modal Actions
   openEditModal(product: Product): void {
+    if (!this.authService.canWrite()) return;
     this.selectedProduct = product;
     this.editModel = {
       sku: product.sku,
@@ -171,6 +177,7 @@ export class ProductsComponent implements OnInit {
 
   // Delete Modal Actions
   openDeleteModal(product: Product): void {
+    if (!this.authService.canWrite()) return;
     this.selectedProduct = product;
     this.showDeleteModal = true;
   }

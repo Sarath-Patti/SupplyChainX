@@ -4,7 +4,7 @@
       <h1 class="page-title">Warehouse Management</h1>
       <p class="page-subtitle">Configure regional fulfillment centers, storage locations, and operational statuses</p>
     </div>
-    <button class="action-btn primary" (click)="openCreateModal()">
+    <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openCreateModal()">
       <span>➕</span> Add New Warehouse
     </button>
   </div>
@@ -51,7 +51,7 @@
           <th>Location / Region</th>
           <th>Status</th>
           <th>Created At</th>
-          <th class="actions-col">Actions</th>
+          <th class="actions-col" *ngIf="authService.canWrite()">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -66,7 +66,7 @@
             </span>
           </td>
           <td class="date-cell">{{ w.createdAtUtc | date:'short' }}</td>
-          <td class="actions-cell">
+          <td class="actions-cell" *ngIf="authService.canWrite()">
             <button class="btn-icon edit" (click)="openEditModal(w)" title="Edit Warehouse">✏️</button>
             <button class="btn-icon delete" (click)="openDeleteModal(w)" title="Delete Warehouse">🗑️</button>
           </td>
@@ -78,7 +78,7 @@
       <div class="empty-icon">🏭</div>
       <h3>No Warehouses Found</h3>
       <p>No warehouses match the search criteria or database is empty.</p>
-      <button class="action-btn primary" (click)="openCreateModal()">Add First Warehouse</button>
+      <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openCreateModal()">Add First Warehouse</button>
     </div>
 
     <div class="pagination-bar" *ngIf="pagedWarehouses.items.length > 0">

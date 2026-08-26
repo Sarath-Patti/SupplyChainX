@@ -49,6 +49,11 @@ public class GlobalExceptionHandlingMiddleware
 
         var (statusCode, title, type) = exception switch
         {
+            UnauthorizedAccessException => (
+                HttpStatusCode.Unauthorized,
+                "Unauthorized",
+                "https://tools.ietf.org/html/rfc7235#section-3.1"
+            ),
             DomainException => (
                 HttpStatusCode.BadRequest,
                 "Domain Rule Violation",
@@ -85,6 +90,7 @@ public class GlobalExceptionHandlingMiddleware
 
         var detailMessage = exception switch
         {
+            UnauthorizedAccessException uae => uae.Message,
             DomainException de => de.Message,
             NotFoundException nfe => nfe.Message,
             ConflictException ce => ce.Message,

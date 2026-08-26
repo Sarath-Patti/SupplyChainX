@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../core/services/inventory.service';
 import { ProductService } from '../../core/services/product.service';
 import { WarehouseService } from '../../core/services/warehouse.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Inventory, AdjustInventoryRequest, InventoryAdjustmentType } from '../../core/models/inventory.model';
 import { Product } from '../../core/models/product.model';
 import { Warehouse } from '../../core/models/warehouse.model';
@@ -45,7 +46,8 @@ export class InventoryComponent implements OnInit {
   constructor(
     private readonly inventoryService: InventoryService,
     private readonly productService: ProductService,
-    private readonly warehouseService: WarehouseService
+    private readonly warehouseService: WarehouseService,
+    public readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -96,6 +98,7 @@ export class InventoryComponent implements OnInit {
   }
 
   openAdjustModal(item?: Inventory): void {
+    if (!this.authService.canWrite()) return;
     this.adjustModel = {
       productId: item ? item.productId : (this.productsList.length > 0 ? this.productsList[0].id : ''),
       warehouseId: item ? item.warehouseId : (this.warehousesList.length > 0 ? this.warehousesList[0].id : ''),

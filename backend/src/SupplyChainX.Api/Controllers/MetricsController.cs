@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupplyChainX.Application.Common.Interfaces;
 
 namespace SupplyChainX.Api.Controllers;
 
 [ApiController]
+[Authorize]
 public class MetricsController : ControllerBase
 {
     private readonly IKafkaConsumerStatusService _statusService;
@@ -19,6 +21,7 @@ public class MetricsController : ControllerBase
     /// GET /api/v1/metrics - Operational metrics and Kafka consumer status endpoint.
     /// Exposes consumer state, throughput counters, retry/DLQ statistics, and system uptime.
     /// Does not expose secrets, credentials, or connection strings.
+    /// Requires Authentication.
     /// </summary>
     [HttpGet("/api/v1/metrics")]
     public IActionResult GetMetrics()
@@ -30,7 +33,7 @@ public class MetricsController : ControllerBase
         {
             timestamp = DateTime.UtcNow,
             service = "SupplyChainX API",
-            version = "v0.7.0",
+            version = "v0.9.0",
             consumerStatus = new
             {
                 isRunning = consumerStatus.IsRunning,

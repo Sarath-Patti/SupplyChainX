@@ -4,7 +4,7 @@
       <h1 class="page-title">Inventory Stock Control</h1>
       <p class="page-subtitle">Real-time stock quantities, reservations, thresholds, and inventory allocation events</p>
     </div>
-    <button class="action-btn primary" (click)="openAdjustModal()">
+    <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openAdjustModal()">
       <span>⚡</span> Adjust Stock Level
     </button>
   </div>
@@ -55,7 +55,7 @@
           <th>Min Threshold</th>
           <th>Stock Health</th>
           <th>Version</th>
-          <th class="actions-col">Action</th>
+          <th class="actions-col" *ngIf="authService.canWrite()">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -83,7 +83,7 @@
             </span>
           </td>
           <td class="font-mono text-muted">v{{ item.version }}</td>
-          <td class="actions-cell">
+          <td class="actions-cell" *ngIf="authService.canWrite()">
             <button class="action-btn sm" (click)="openAdjustModal(item)">⚡ Adjust</button>
           </td>
         </tr>
@@ -94,7 +94,7 @@
       <div class="empty-icon">📋</div>
       <h3>No Inventory Records Found</h3>
       <p>No stock records found for the selected product/warehouse filters.</p>
-      <button class="action-btn primary" (click)="openAdjustModal()">Perform Stock Adjustment</button>
+      <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openAdjustModal()">Perform Stock Adjustment</button>
     </div>
 
     <div class="pagination-bar" *ngIf="pagedInventory.items.length > 0">

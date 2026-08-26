@@ -9,6 +9,9 @@ public interface ISupplyChainXDbContext
     DbSet<Warehouse> Warehouses { get; }
     DbSet<Inventory> Inventories { get; }
     DbSet<ProcessedEvent> ProcessedEvents { get; }
+    DbSet<User> Users { get; }
+    DbSet<Role> Roles { get; }
+    DbSet<UserRole> UserRoles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

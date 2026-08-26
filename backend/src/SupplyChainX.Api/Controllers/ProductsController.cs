@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Application.Services;
@@ -6,6 +7,7 @@ namespace SupplyChainX.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Authorize(Roles = "Admin,Operator,Viewer")]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -33,6 +35,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
     {
         var created = await _productService.CreateProductAsync(request, cancellationToken);
@@ -40,6 +43,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<ActionResult<ProductDto>> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request, CancellationToken cancellationToken)
     {
         var updated = await _productService.UpdateProductAsync(id, request, cancellationToken);
@@ -47,6 +51,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken cancellationToken)
     {
         await _productService.DeleteProductAsync(id, cancellationToken);

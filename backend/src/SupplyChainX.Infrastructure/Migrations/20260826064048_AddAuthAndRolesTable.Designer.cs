@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SupplyChainX.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using SupplyChainX.Infrastructure.Persistence;
 namespace SupplyChainX.Infrastructure.Migrations
 {
     [DbContext(typeof(SupplyChainXDbContext))]
-    partial class SupplyChainXDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826064048_AddAuthAndRolesTable")]
+    partial class AddAuthAndRolesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

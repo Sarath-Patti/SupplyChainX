@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Application.Services;
@@ -6,6 +7,7 @@ namespace SupplyChainX.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Authorize(Roles = "Admin,Operator,Viewer")]
 public class InventoryController : ControllerBase
 {
     private readonly IInventoryService _inventoryService;
@@ -37,6 +39,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpPost("adjust")]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<ActionResult<InventoryDto>> AdjustInventory(
         [FromBody] AdjustInventoryRequest request,
         CancellationToken cancellationToken)

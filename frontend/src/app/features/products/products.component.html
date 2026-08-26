@@ -5,7 +5,7 @@
       <h1 class="page-title">Product Catalog</h1>
       <p class="page-subtitle">Manage enterprise product definitions, SKUs, and unit pricing</p>
     </div>
-    <button class="action-btn primary" (click)="openCreateModal()">
+    <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openCreateModal()">
       <span>➕</span> Create New Product
     </button>
   </div>
@@ -59,7 +59,7 @@
           <th>Unit Price</th>
           <th>Status</th>
           <th>Created At</th>
-          <th class="actions-col">Actions</th>
+          <th class="actions-col" *ngIf="authService.canWrite()">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -76,7 +76,7 @@
             </span>
           </td>
           <td class="date-cell">{{ p.createdAtUtc | date:'short' }}</td>
-          <td class="actions-cell">
+          <td class="actions-cell" *ngIf="authService.canWrite()">
             <button class="btn-icon edit" (click)="openEditModal(p)" title="Edit Product">✏️</button>
             <button class="btn-icon delete" (click)="openDeleteModal(p)" title="Delete Product">🗑️</button>
           </td>
@@ -89,7 +89,7 @@
       <div class="empty-icon">📦</div>
       <h3>No Products Found</h3>
       <p>No products match the selected search criteria or database is empty.</p>
-      <button class="action-btn primary" (click)="openCreateModal()">Add First Product</button>
+      <button class="action-btn primary" *ngIf="authService.canWrite()" (click)="openCreateModal()">Add First Product</button>
     </div>
 
     <!-- Pagination Controls -->

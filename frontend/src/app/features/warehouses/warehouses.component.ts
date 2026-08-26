@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WarehouseService } from '../../core/services/warehouse.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Warehouse, CreateWarehouseRequest, UpdateWarehouseRequest } from '../../core/models/warehouse.model';
 import { PagedResult } from '../../core/models/common.model';
 
@@ -42,7 +43,10 @@ export class WarehousesComponent implements OnInit {
   selectedWarehouse: Warehouse | null = null;
   isSubmitting = false;
 
-  constructor(private readonly warehouseService: WarehouseService) {}
+  constructor(
+    private readonly warehouseService: WarehouseService,
+    public readonly authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.loadWarehouses();
@@ -89,6 +93,7 @@ export class WarehousesComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (!this.authService.canWrite()) return;
     this.createModel = { name: '', location: '', isActive: true };
     this.showCreateModal = true;
   }
@@ -116,6 +121,7 @@ export class WarehousesComponent implements OnInit {
   }
 
   openEditModal(warehouse: Warehouse): void {
+    if (!this.authService.canWrite()) return;
     this.selectedWarehouse = warehouse;
     this.editModel = {
       name: warehouse.name,
@@ -149,6 +155,7 @@ export class WarehousesComponent implements OnInit {
   }
 
   openDeleteModal(warehouse: Warehouse): void {
+    if (!this.authService.canWrite()) return;
     this.selectedWarehouse = warehouse;
     this.showDeleteModal = true;
   }

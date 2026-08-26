@@ -13,6 +13,9 @@ public class SupplyChainXDbContext : DbContext, ISupplyChainXDbContext
     public DbSet<Warehouse> Warehouses { get; set; } = null!;
     public DbSet<Inventory> Inventories { get; set; } = null!;
     public DbSet<ProcessedEvent> ProcessedEvents { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Role> Roles { get; set; } = null!;
+    public DbSet<UserRole> UserRoles { get; set; } = null!;
 
     public SupplyChainXDbContext(DbContextOptions<SupplyChainXDbContext> options)
         : base(options)

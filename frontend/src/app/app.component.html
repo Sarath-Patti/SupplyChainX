@@ -1,11 +1,17 @@
-<div class="app-layout">
+<!-- Full Screen Layout for Auth Pages -->
+<div *ngIf="!authService.isLoggedIn()">
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Authenticated Dashboard Layout -->
+<div class="app-layout" *ngIf="authService.isLoggedIn()">
   <!-- Sidebar Navigation -->
   <aside class="sidebar">
     <div class="brand">
       <div class="logo-icon">⚡</div>
       <div class="brand-text">
         <h2>SupplyChainX</h2>
-        <span class="version-badge">v0.8.0</span>
+        <span class="version-badge">v0.9.0</span>
       </div>
     </div>
 
@@ -52,8 +58,22 @@
           <span class="clock-icon">🕒</span>
           <span>{{ currentTime | date:'mediumTime' }} UTC</span>
         </div>
-        <button class="refresh-btn" (click)="checkHealth()" title="Refresh System Status">
-          <span>🔄</span> Refresh
+
+        <!-- User Identity & Role Badge -->
+        <div class="user-profile" *ngIf="authService.getUser() as user">
+          <div class="user-avatar">👤</div>
+          <div class="user-details">
+            <span class="user-name">{{ user.username }}</span>
+            <div class="user-roles">
+              <span *ngFor="let role of user.roles" class="role-badge" [class.admin]="role === 'Admin'" [class.operator]="role === 'Operator'" [class.viewer]="role === 'Viewer'">
+                {{ role }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button class="logout-btn" (click)="logout()" title="Sign Out">
+          <span>🚪</span> Logout
         </button>
       </div>
     </header>

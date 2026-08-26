@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace SupplyChainX.Api.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 public class HealthController : ControllerBase
 {
     private readonly HealthCheckService _healthCheckService;
@@ -25,7 +27,7 @@ public class HealthController : ControllerBase
         {
             status = report.Status.ToString(),
             service = "SupplyChainX API",
-            version = "v0.7.0",
+            version = "v0.9.0",
             timestamp = DateTime.UtcNow,
             checks = report.Entries.Select(e => new
             {

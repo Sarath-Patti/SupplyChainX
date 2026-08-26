@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupplyChainX.Application.DTOs;
 using SupplyChainX.Application.Services;
@@ -6,6 +7,7 @@ namespace SupplyChainX.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Authorize(Roles = "Admin,Operator,Viewer")]
 public class WarehousesController : ControllerBase
 {
     private readonly IWarehouseService _warehouseService;
@@ -33,6 +35,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<ActionResult<WarehouseDto>> CreateWarehouse([FromBody] CreateWarehouseRequest request, CancellationToken cancellationToken)
     {
         var created = await _warehouseService.CreateWarehouseAsync(request, cancellationToken);
@@ -40,6 +43,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<ActionResult<WarehouseDto>> UpdateWarehouse(Guid id, [FromBody] UpdateWarehouseRequest request, CancellationToken cancellationToken)
     {
         var updated = await _warehouseService.UpdateWarehouseAsync(id, request, cancellationToken);
@@ -47,6 +51,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Operator")]
     public async Task<IActionResult> DeleteWarehouse(Guid id, CancellationToken cancellationToken)
     {
         await _warehouseService.DeleteWarehouseAsync(id, cancellationToken);

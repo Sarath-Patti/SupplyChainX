@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { HealthService } from './core/services/health.service';
+import { AuthService } from './core/services/auth.service';
 import { HealthCheckResponse } from './core/models/health.model';
 import { Subscription, interval } from 'rxjs';
 
@@ -21,7 +22,11 @@ export class AppComponent implements OnInit, OnDestroy {
   private healthSub?: Subscription;
   private timerSub?: Subscription;
 
-  constructor(private readonly healthService: HealthService) {}
+  constructor(
+    public readonly authService: AuthService,
+    private readonly healthService: HealthService,
+    private readonly router: Router
+  ) {}
 
   ngOnInit(): void {
     this.checkHealth();
@@ -44,6 +49,11 @@ export class AppComponent implements OnInit, OnDestroy {
         this.healthError = err.message || 'API Unreachable';
       }
     });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   ngOnDestroy(): void {

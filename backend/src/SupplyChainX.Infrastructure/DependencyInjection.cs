@@ -1,9 +1,14 @@
+using System.Text;
 using Confluent.Kafka;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using SupplyChainX.Application.Common.Configuration;
 using SupplyChainX.Application.Common.Interfaces;
+using SupplyChainX.Application.Services;
+using SupplyChainX.Domain.Entities;
 using SupplyChainX.Infrastructure.Health;
 using SupplyChainX.Infrastructure.Messaging.Kafka;
 using SupplyChainX.Infrastructure.Persistence;
@@ -20,7 +25,7 @@ public static class DependencyInjection
         // 1. PostgreSQL Database Configuration
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
-            ?? "Host=localhost;Port=5432;Database=supplychainx_db;Username=postgres;Password=postgres_dev_password";
+            ?? "Host=localhost;Port=5433;Database=supplychainx_db;Username=postgres;Password=postgres_dev_password";
 
         services.AddDbContext<SupplyChainXDbContext>(options =>
         {
@@ -37,10 +42,47 @@ public static class DependencyInjection
         services.AddScoped<ISupplyChainXDbContext>(provider => provider.GetRequiredService<SupplyChainXDbContext>());
         services.AddScoped<IIdempotencyService, IdempotencyService>();
 
-        // 2. Status & Observability Services
+        // 2. Auth & JWT Configuration
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+        services.AddSingleton<IPasswordService, PasswordService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IAuthService, AuthService>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false;
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+                ValidateIssuer = true,
+                ValidIssuer = jwtOptions.Issuer,
+                ValidateAudience = true,
+                ValidAudience = jwtOptions.Audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("AdminOnly", policy => policy.RequireRole(Role.Admin));
+            options.AddPolicy("OperatorOrAdmin", policy => policy.RequireRole(Role.Admin, Role.Operator));
+            options.AddPolicy("ViewerOrHigher", policy => policy.RequireRole(Role.Admin, Role.Operator, Role.Viewer));
+        });
+
+        // 3. Status & Observability Services
         services.AddSingleton<IKafkaConsumerStatusService, KafkaConsumerStatusService>();
 
-        // 3. Health Checks
+        // 4. Health Checks
         services.AddHealthChecks()
             .AddDbContextCheck<SupplyChainXDbContext>(
                 name: "database",
@@ -49,7 +91,7 @@ public static class DependencyInjection
                 name: "kafka",
                 tags: new[] { "messaging", "kafka", "ready" });
 
-        // 4. Kafka Producer Messaging Configuration
+        // 5. Kafka Producer Messaging Configuration
         var bootstrapServers = configuration["Kafka:BootstrapServers"]
             ?? Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS")
             ?? "localhost:9092";
@@ -74,7 +116,7 @@ public static class DependencyInjection
 
         services.AddScoped<IEventPublisher, KafkaEventPublisher>();
 
-        // 5. Kafka Consumer Hosted Service
+        // 6. Kafka Consumer Hosted Service
         services.AddHostedService<KafkaConsumerBackgroundService>();
 
         return services;

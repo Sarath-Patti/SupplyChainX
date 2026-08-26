@@ -1,0 +1,76 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="logo-icon">✨</span>
+      <h1 class="brand-title">Create Account</h1>
+      <p class="auth-subtitle">Register for SupplyChainX portal access</p>
+    </div>
+
+    <div class="error-banner" *ngIf="errorMessage">
+      <span>⚠️</span> {{ errorMessage }}
+    </div>
+
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          [(ngModel)]="model.username"
+          name="username"
+          required
+          placeholder="e.g. operator_smith"
+          autocomplete="username"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          id="email"
+          type="email"
+          [(ngModel)]="model.email"
+          name="email"
+          required
+          placeholder="e.g. smith@enterprise.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          [(ngModel)]="model.password"
+          name="password"
+          required
+          placeholder="At least 6 characters"
+          autocomplete="new-password"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          [(ngModel)]="confirmPassword"
+          name="confirmPassword"
+          required
+          placeholder="Re-enter password"
+          autocomplete="new-password"
+        />
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="isLoading">
+        <span *ngIf="!isLoading">Register Account ➔</span>
+        <span *ngIf="isLoading" class="spinner"></span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign In Instead</a></p>
+    </div>
+  </div>
+</div>
