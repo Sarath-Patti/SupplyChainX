@@ -1,10 +1,10 @@
 # SupplyChainX
 
-**Version**: `v1.3.0`<br/>
-**Milestone**: `v1.3 – Azure OpenAI Integration & Production AI Configuration`<br/>
-**Status**: `v1.3 – Verified`
+**Version**: `v1.4.0`<br/>
+**Milestone**: `v1.4 – Production Hardening, Reliability & Version Consistency`<br/>
+**Status**: `v1.4 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG & Agentic engine, Model Context Protocol (MCP) server, Azure OpenAI production integration, and an Angular 19 management dashboard with an integrated AI Copilot.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG & Agentic engine, Model Context Protocol (MCP) server, production-configurable Azure OpenAI integration, and an Angular 19 management dashboard with an integrated AI Copilot.
 
 ---
 
@@ -189,6 +189,16 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Version Display Alignment**: Aligned application runtime version reported by `/health`, `/api/v1/metrics`, and Angular sidebar badge to `v1.2.0`.
 - **Public Endpoint CORS Optimization**: Updated `authInterceptor` to categorize public `/health` probes alongside `/login` and `/register` endpoints, preventing unnecessary Bearer token CORS preflight overhead on public telemetry requests.
 
+### **v1.4 — Production Hardening, Reliability & Version Consistency**
+- **Version Display Consistency**: Aligned active application version surfaces to **`v1.3.0`** across `/health`, `/api/v1/metrics`, OpenAPI/Swagger specifications, and the Angular frontend sidebar badge. Historical milestone documentation remains historically accurate.
+- **Standardized `ProblemDetails` Error Safety**: Enriched `GlobalExceptionHandlingMiddleware` to include correlation ID tracing (`problemDetails.Extensions["correlationId"] = correlationId`) on RFC 7807 problem details payloads. Stack traces, connection strings, and infrastructure secrets are strictly shielded from public API error responses.
+- **AI & Configuration Hardening**: Validated `AiOptions` configuration boundaries (`ValidateProviderConfiguration()`) and enforced sanitized hostname logging (`Uri.Host`), guaranteeing API keys and bearer tokens are never logged or exposed.
+- **Automated & Manual Verification**:
+  - Frontend build passed (`ng build`).
+  - Backend build passed (`dotnet build`, 0 warnings, 0 errors).
+  - **94 / 94 automated backend unit tests passed**.
+  - **Manual Verification**: User confirmed `/health` returns status `Healthy` and version `v1.3.0`, Angular frontend displays `v1.3.0`, dashboard status reports online, and authenticated session persists across refresh (F5).
+
 ---
 
 ## Technology Stack
@@ -202,7 +212,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Authentication & Security**: JWT Bearer Authentication (`Microsoft.AspNetCore.Authentication.JwtBearer`), PBKDF2 Password Hashing (`PasswordHasher<User>`), Role-Based Authorization
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
 - **Messaging**: Apache Kafka 3.8.0 (`Confluent.Kafka` 2.6.0)
-- **Observability & Health**: ASP.NET Core Health Checks, `System.Diagnostics.Metrics`, Serilog
+- **Observability & Health**: ASP.NET Core Health Checks, `System.Diagnostics.Metrics`, Serilog, OpenAPI/Swagger
 - **Testing**: xUnit, FluentAssertions, NSubstitute, EF Core InMemory, Jasmine/Karma
 - **Containerization**: Docker & Docker Compose
 
@@ -212,7 +222,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v1.3)
+├── frontend/                                 # Angular Client Application (v1.4)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
@@ -253,7 +263,7 @@ SupplyChainX/
 ├── infrastructure/                           # Container Orchestration
 │   └── docker-compose.yml                    # PostgreSQL & Kafka Services
 ├── tests/                                    # Automated Test Suites
-│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, AI Copilot, MCP Server, Health & Metrics
+│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Middleware, Handlers, Auth, AI Copilot, MCP Server, Health & Metrics
 ├── LICENSE                                   # MIT License
 └── README.md                                 # Project Documentation
 ```
@@ -299,9 +309,11 @@ npm start
 ## Verified Invariants & Quality Standards
 
 - **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings (`dotnet build`).
-- **Test Suite Baseline**: 93 / 93 Automated Unit Tests Passing.
+- **Test Suite Baseline**: **94 / 94 Automated Unit Tests Passing**.
+- **API Health & Versioning**: `/health` endpoint verified returning `status: Healthy`, `database: Healthy`, `kafka: Healthy`, and version `v1.3.0`.
+- **Frontend Versioning**: Angular browser client verified displaying version badge `v1.3.0`.
 - **Authentication & Session Persistence**: Angular browser login verified; browser refresh (F5) restores authenticated user state via `GET /api/v1/auth/me`.
-- **Operations Dashboard & Telemetry**: Dashboard telemetry verified online; `/health/ready` probe reports `Healthy`.
+- **Operations Dashboard & Telemetry**: Dashboard telemetry verified online; System Status reports online.
 - **AI Copilot & Multi-Tool Execution**: Verified natural-language prompt *"Which products are currently low in stock?"* sequentially executed `GetLowStockItemsAsync` and `GetWarehousesAsync`, rendered visual step-by-step traces (`AgentActivityStep`), and returned factual grounded answers.
 - **Model Context Protocol (MCP) Server**: Tool discovery (`GET /api/v1/mcp/tools`) and tool execution (`POST /api/v1/mcp/tools/call`) verified.
 - **Azure OpenAI Integration Status**: `Azure OpenAI live connectivity: NOT VERIFIED` (configured as production-ready; live Azure API keys/endpoints were not supplied).

@@ -33,8 +33,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "SupplyChainX API",
-        Version = "v1.2.0",
-        Description = "Enterprise Inventory & Order Management Platform API (v1.2 Agentic AI & Model Context Protocol)"
+        Version = "v1.3.0",
+        Description = "Enterprise Inventory & Order Management Platform API (v1.3 Azure OpenAI Integration & Production AI Configuration)"
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -93,7 +93,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v1.2.0");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v1.3.0");
     });
 }
 

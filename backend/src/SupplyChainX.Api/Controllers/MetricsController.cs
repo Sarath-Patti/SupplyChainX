@@ -33,7 +33,7 @@ public class MetricsController : ControllerBase
         {
             timestamp = DateTime.UtcNow,
             service = "SupplyChainX API",
-            version = "v1.2.0",
+            version = "v1.3.0",
             consumerStatus = new
             {
                 isRunning = consumerStatus.IsRunning,

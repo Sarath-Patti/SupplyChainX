@@ -99,6 +99,8 @@ public class GlobalExceptionHandlingMiddleware
             _ => _env.IsDevelopment() ? exception.Message : "A server error occurred. Please contact support if the issue persists."
         };
 
+        var correlationId = context.Response.Headers["X-Correlation-ID"].FirstOrDefault() ?? context.TraceIdentifier;
+
         var problemDetails = new ProblemDetails
         {
             Status = context.Response.StatusCode,
@@ -107,6 +109,8 @@ public class GlobalExceptionHandlingMiddleware
             Detail = detailMessage,
             Instance = context.Request.Path
         };
+
+        problemDetails.Extensions["correlationId"] = correlationId;
 
         if (_env.IsDevelopment() && statusCode == HttpStatusCode.InternalServerError)
         {
