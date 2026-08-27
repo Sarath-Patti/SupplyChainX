@@ -27,7 +27,7 @@ public class HealthController : ControllerBase
         {
             status = report.Status.ToString(),
             service = "SupplyChainX API",
-            version = "v0.9.0",
+            version = "v1.2.0",
             timestamp = DateTime.UtcNow,
             checks = report.Entries.Select(e => new
             {

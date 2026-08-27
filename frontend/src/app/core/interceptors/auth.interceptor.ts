@@ -12,9 +12,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = localStorage.getItem(TOKEN_KEY);
 
   let authReq = req;
-  const isAuthEndpoint = req.url.includes('/api/v1/auth/login') || req.url.includes('/api/v1/auth/register');
+  const urlLower = req.url.toLowerCase();
 
-  if (token && req.url.startsWith(environment.apiBaseUrl) && !isAuthEndpoint) {
+  // Public endpoints that should not carry Bearer token (prevents CORS preflight overhead/issues)
+  const isPublicEndpoint = urlLower.includes('/api/v1/auth/login') ||
+                           urlLower.includes('/api/v1/auth/register') ||
+                           urlLower.includes('/health');
+
+  const isTargetApi = req.url.startsWith(environment.apiBaseUrl) || req.url.startsWith('/');
+
+  if (token && isTargetApi && !isPublicEndpoint) {
     authReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`

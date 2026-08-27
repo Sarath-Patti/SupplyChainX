@@ -4,7 +4,8 @@ import { HealthService } from '../../core/services/health.service';
 import { MetricsService } from '../../core/services/metrics.service';
 import { HealthCheckResponse } from '../../core/models/health.model';
 import { MetricsResponse } from '../../core/models/metrics.model';
-import { Subscription, interval, forkJoin } from 'rxjs';
+import { Subscription, interval, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
@@ -47,10 +48,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.errorMessage = null;
 
     forkJoin({
-      health: this.healthService.getHealth(),
-      readiness: this.healthService.getReadiness(),
-      liveness: this.healthService.getLiveness(),
-      metrics: this.metricsService.getMetrics()
+      health: this.healthService.getHealth().pipe(catchError(() => of(null))),
+      readiness: this.healthService.getReadiness().pipe(catchError(() => of(null))),
+      liveness: this.healthService.getLiveness().pipe(catchError(() => of(null))),
+      metrics: this.metricsService.getMetrics().pipe(catchError(() => of(null)))
     }).subscribe({
       next: (res) => {
         this.healthData = res.health;
@@ -59,9 +60,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.metricsData = res.metrics;
         this.isLoading = false;
         this.lastUpdated = new Date();
+
+        if (!res.health && !res.readiness && !res.liveness && !res.metrics) {
+          this.errorMessage = 'Failed to connect to backend server. Make sure API is running on http://localhost:5000.';
+        }
       },
       error: (err) => {
-        this.errorMessage = err.message || 'Failed to connect to backend server. Make sure API is running on localhost:5000';
+        this.errorMessage = err.message || 'Failed to connect to backend server. Make sure API is running on http://localhost:5000.';
         this.isLoading = false;
       }
     });

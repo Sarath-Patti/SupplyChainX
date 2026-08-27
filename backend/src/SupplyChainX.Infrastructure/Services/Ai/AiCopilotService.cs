@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -42,15 +43,22 @@ public class AiCopilotService : IAiCopilotService
             throw new ArgumentException("Chat message cannot be empty.", nameof(request));
         }
 
+        // Validate explicit provider settings if configured
+        _options.ValidateProviderConfiguration();
+
         var username = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.Identity.Name ?? "Authenticated User";
         var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+        var stopwatch = Stopwatch.StartNew();
 
-        _logger.LogInformation("Processing Agentic AI Copilot request for user {Username} with roles [{Roles}]", username, string.Join(", ", roles));
+        _logger.LogInformation("Processing Agentic AI Copilot request for user {Username} with roles [{Roles}] (Provider: {Provider})",
+            username, string.Join(", ", roles), _options.Provider);
 
         var toolsInvoked = new List<string>();
         var activityTrace = new List<AgentActivityStep>();
 
-        // Check if live OpenAI / Azure OpenAI credentials are configured
+        var provider = _options.Provider.Trim();
+
+        // Check configured keys
         var openAiKey = !string.IsNullOrWhiteSpace(_options.OpenAiApiKey)
             ? _options.OpenAiApiKey
             : Environment.GetEnvironmentVariable("OPENAI_API_KEY");
@@ -59,26 +67,61 @@ public class AiCopilotService : IAiCopilotService
             ? _options.AzureOpenAiApiKey
             : Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
 
-        if (!string.IsNullOrWhiteSpace(openAiKey) || !string.IsNullOrWhiteSpace(azureKey))
+        var azureEndpoint = !string.IsNullOrWhiteSpace(_options.AzureOpenAiEndpoint)
+            ? _options.AzureOpenAiEndpoint
+            : Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+
+        var useAzure = (provider.Equals("AzureOpenAI", StringComparison.OrdinalIgnoreCase) || provider.Equals("Azure", StringComparison.OrdinalIgnoreCase)) ||
+                       (provider.Equals("Auto", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(azureKey) && !string.IsNullOrWhiteSpace(azureEndpoint));
+
+        var useOpenAi = provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase) ||
+                        (provider.Equals("Auto", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(openAiKey) && !useAzure);
+
+        if (useAzure || useOpenAi)
         {
             try
             {
-                return await ExecuteSemanticKernelWithLlmAsync(request, openAiKey, azureKey, toolsInvoked, activityTrace, cancellationToken);
+                var sanitizedEndpoint = !string.IsNullOrWhiteSpace(azureEndpoint)
+                    ? new Uri(azureEndpoint).Host
+                    : "api.openai.com";
+
+                _logger.LogInformation("Invoking Semantic Kernel LLM provider ({ProviderType}, Host: {Host}, Deployment/Model: {Model})",
+                    useAzure ? "AzureOpenAI" : "OpenAI",
+                    sanitizedEndpoint,
+                    useAzure ? _options.AzureOpenAiDeploymentName : _options.OpenAiModel);
+
+                var response = await ExecuteSemanticKernelWithLlmAsync(
+                    request,
+                    useAzure ? null : openAiKey,
+                    useAzure ? azureKey : null,
+                    azureEndpoint,
+                    toolsInvoked,
+                    activityTrace,
+                    cancellationToken);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Semantic Kernel LLM request completed in {ElapsedMs} ms", stopwatch.ElapsedMilliseconds);
+                return response;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "External LLM provider invocation failed or unconfigured. Falling back to Grounded Semantic Kernel RAG Agentic Orchestrator.");
+                _logger.LogWarning(ex, "Configured LLM provider invocation failed. Falling back to Grounded Semantic Kernel RAG Agentic Orchestrator.");
             }
         }
 
         // Grounded Semantic Kernel Agentic Orchestration Engine (Local Fallback Mode)
-        return await ExecuteAgenticOrchestratorAsync(request, toolsInvoked, activityTrace, cancellationToken);
+        var groundedResponse = await ExecuteAgenticOrchestratorAsync(request, toolsInvoked, activityTrace, cancellationToken);
+        stopwatch.Stop();
+        _logger.LogInformation("Grounded RAG Agentic Orchestrator completed in {ElapsedMs} ms (ToolsInvoked: {Count})", stopwatch.ElapsedMilliseconds, toolsInvoked.Count);
+
+        return groundedResponse;
     }
 
     private async Task<ChatResponse> ExecuteSemanticKernelWithLlmAsync(
         ChatRequest request,
         string? openAiKey,
         string? azureKey,
+        string? azureEndpoint,
         List<string> toolsInvoked,
         List<AgentActivityStep> activityTrace,
         CancellationToken cancellationToken)
@@ -86,16 +129,13 @@ public class AiCopilotService : IAiCopilotService
         var builder = Kernel.CreateBuilder();
         builder.Plugins.AddFromObject(_supplyChainPlugin, "SupplyChain");
 
-        if (!string.IsNullOrWhiteSpace(azureKey))
+        if (!string.IsNullOrWhiteSpace(azureKey) && !string.IsNullOrWhiteSpace(azureEndpoint))
         {
-            var endpoint = !string.IsNullOrWhiteSpace(_options.AzureOpenAiEndpoint)
-                ? _options.AzureOpenAiEndpoint
-                : Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? "";
             var deployment = !string.IsNullOrWhiteSpace(_options.AzureOpenAiDeploymentName)
                 ? _options.AzureOpenAiDeploymentName
                 : "gpt-4o-mini";
 
-            builder.AddAzureOpenAIChatCompletion(deployment, endpoint, azureKey);
+            builder.AddAzureOpenAIChatCompletion(deployment, azureEndpoint, azureKey);
         }
         else if (!string.IsNullOrWhiteSpace(openAiKey))
         {

@@ -59,7 +59,11 @@ export class RegisterComponent {
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.detail || err.message || 'Registration failed. Please try again.';
+        if (err.status === 0) {
+          this.errorMessage = 'Unable to connect to the authentication server. Please verify the backend is running at http://localhost:5000.';
+        } else {
+          this.errorMessage = err.error?.detail || err.error?.message || err.message || 'Registration failed. Please try again.';
+        }
       }
     });
   }

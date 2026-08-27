@@ -57,6 +57,25 @@ public class AiCopilotServiceTests
     }
 
     [Fact]
+    public async Task ChatAsync_WithMissingAzureOpenAiConfig_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var options = Options.Create(new AiOptions
+        {
+            Provider = "AzureOpenAI",
+            AzureOpenAiEndpoint = "",
+            AzureOpenAiApiKey = ""
+        });
+        var service = new AiCopilotService(options, _plugin, _loggerMock);
+        var authenticatedUser = CreateUser("testuser", "Viewer");
+
+        // Act & Assert
+        await FluentActions.Invoking(() => service.ChatAsync(new ChatRequest("Low stock query"), authenticatedUser))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Azure OpenAI configuration is incomplete*");
+    }
+
+    [Fact]
     public async Task ChatAsync_WithLowStockQuery_ShouldInvokeLowStockToolAndReturnGroundedAnswer()
     {
         // Arrange

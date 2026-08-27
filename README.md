@@ -1,10 +1,10 @@
 # SupplyChainX
 
-**Version**: `v1.2.0`<br/>
-**Milestone**: `v1.2 – Agentic AI & Model Context Protocol (MCP)`<br/>
-**Status**: `v1.2 – Verified`
+**Version**: `v1.3.0`<br/>
+**Milestone**: `v1.3 – Azure OpenAI Integration & Production AI Configuration`<br/>
+**Status**: `v1.3 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG & Agentic engine, Model Context Protocol (MCP) server, and an Angular 19 management dashboard with an integrated AI Copilot.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG & Agentic engine, Model Context Protocol (MCP) server, Azure OpenAI production integration, and an Angular 19 management dashboard with an integrated AI Copilot.
 
 ---
 
@@ -32,6 +32,12 @@ SupplyChainX is an enterprise inventory and order management platform built on a
   ┌──────────────────────────┐
   │  Semantic Kernel Agent   │
   │   & MCP Server Layer     │
+  └────────────┬─────────────┘
+               │ (Azure OpenAI / LLM Integration)
+               ▼
+  ┌──────────────────────────┐
+  │  Azure OpenAI Provider   │
+  │ (Production-Configurable)│
   └────────────┬─────────────┘
                │ (Publish Events)
                ▼
@@ -175,6 +181,14 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **CORS / Preflight Reliability Fix**: Resolved an initial browser login CORS preflight issue (`Http failure response ... 0 Unknown Error`) by positioning `app.UseCors()` after `app.UseRouting()` in ASP.NET Core middleware pipeline and setting `policy.SetIsOriginAllowed(_ => true)`, enabling browser authentication while preserving JWT authorization.
 - **Automated & Manual Verification**: Frontend build passed (`ng build`), backend build passed (`dotnet build`, 0 warnings, 0 errors), 93/93 automated backend unit tests passed, live endpoint 401 unauthenticated enforcement verified, live MCP tool discovery (`GET /api/v1/mcp/tools`) verified, live MCP tool execution (`POST /api/v1/mcp/tools/call`) verified with real PostgreSQL data, multi-tool agent execution trace (`GetLowStockItemsAsync` -> `GetWarehousesAsync`) verified, session persistence across browser refresh (F5) verified, and logout protection verified.
 
+### **v1.3 — Azure OpenAI Integration & Production AI Configuration**
+- **Production-Configurable Azure OpenAI Integration**: Enhanced `AiCopilotService` and `AiOptions` to support Azure OpenAI as a production LLM provider via Microsoft Semantic Kernel (`builder.AddAzureOpenAIChatCompletion(deployment, endpoint, apiKey)`).
+- **Strongly Typed AI Configuration**: Strongly typed configuration options (`AzureOpenAiEndpoint`, `AzureOpenAiDeploymentName`, `AzureOpenAiApiKey`, `ApiVersion`) configured via `appsettings.json` placeholders or secure environment variables (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`).
+- **Provider Validation & Fallback**: Explicit provider validation logic (`ValidateProviderConfiguration()`) enforcing required keys when `Provider` is set to `"AzureOpenAI"`, with graceful local fallback to the Grounded Semantic Kernel Agentic Orchestrator when external keys are not supplied.
+- **Preserved RAG, Agentic & MCP Architecture**: Preserved grounded RAG retrieval, multi-step agent tool execution, and authenticated MCP server endpoints (`GET /api/v1/mcp/tools`, `POST /api/v1/mcp/tools/call`).
+- **Version Display Alignment**: Aligned application runtime version reported by `/health`, `/api/v1/metrics`, and Angular sidebar badge to `v1.2.0`.
+- **Public Endpoint CORS Optimization**: Updated `authInterceptor` to categorize public `/health` probes alongside `/login` and `/register` endpoints, preventing unnecessary Bearer token CORS preflight overhead on public telemetry requests.
+
 ---
 
 ## Technology Stack
@@ -182,6 +196,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture, Angular Router, RxJS)
 - **Backend Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
 - **AI & Agentic Orchestration**: Microsoft Semantic Kernel (v1.30.0), Generative AI / LLM, RAG, Agentic AI Tool Orchestration
+- **Production AI Provider**: Azure OpenAI Integration (Production-Configurable)
 - **Model Context Protocol**: Model Context Protocol (MCP) Server (`ModelContextProtocol` v0.1.0-preview.1.25171.12)
 - **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
 - **Authentication & Security**: JWT Bearer Authentication (`Microsoft.AspNetCore.Authentication.JwtBearer`), PBKDF2 Password Hashing (`PasswordHasher<User>`), Role-Based Authorization
@@ -197,14 +212,14 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v1.2)
+├── frontend/                                 # Angular Client Application (v1.3)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
 │   │   │   │   ├── guards/                   # authGuard, roleGuard (with async initialization await)
-│   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection)
-│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory & AI Models (AgentActivityStep)
-│   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService, AiService
+│   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection & Public Endpoint Handling)
+│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory, Health, Metrics & AI Models
+│   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService, HealthService, MetricsService, AiService
 │   │   │   ├── features/                     # Auth (Login/Register), Copilot, Dashboard, Products, Warehouses, Inventory
 │   │   │   └── layout/                       # Layout & Navigation Header
 │   │   └── environments/                     # Environment configuration (apiBaseUrl)
@@ -219,7 +234,7 @@ SupplyChainX/
 │       │   └── Program.cs
 │       ├── SupplyChainX.Application/         # Interfaces, DTOs, Handlers & Configuration Options
 │       │   ├── Common/
-│       │   │   ├── Configuration/            # JwtOptions, AiOptions, KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
+│       │   │   ├── Configuration/            # JwtOptions, AiOptions (Azure OpenAI Config), KafkaOptions
 │       │   │   ├── Events/                   # Domain Event Contracts
 │       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAiCopilotService, IMcpServerService, IAuthService, IJwtTokenGenerator
 │       │   │   └── Models/                   # KafkaConsumerStatusDto
@@ -232,7 +247,7 @@ SupplyChainX/
 │           ├── Health/                       # KafkaHealthCheck
 │           ├── Messaging/Kafka/              # KafkaEventPublisher, KafkaConsumerBackgroundService, KafkaConsumerStatusService
 │           ├── Services/                     # AuthService, JwtTokenGenerator, PasswordService
-│           │   ├── Ai/                       # AiCopilotService & SupplyChainPlugin (Semantic Kernel Tools)
+│           │   ├── Ai/                       # AiCopilotService (Azure OpenAI & Semantic Kernel) & SupplyChainPlugin
 │           │   └── Mcp/                      # McpServerService (MCP Server Tools & Call Handler)
 │           └── Persistence/                  # SupplyChainXDbContext & Migrations (AddAuthAndRolesTable)
 ├── infrastructure/                           # Container Orchestration
@@ -284,14 +299,12 @@ npm start
 ## Verified Invariants & Quality Standards
 
 - **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings (`dotnet build`).
-- **Test Suite**: 93 / 93 Automated Unit Tests Passing.
-- **Model Context Protocol (MCP) Server**: Exposes standard tools (`supplychainx_get_products`, `supplychainx_get_warehouses`, `supplychainx_get_inventory`, `supplychainx_get_low_stock`) via `GET /api/v1/mcp/tools` and `POST /api/v1/mcp/tools/call`.
-- **MCP & Agent Security**: Unauthenticated requests to `/api/v1/ai/chat` and `/api/v1/mcp/*` return HTTP 401 Unauthorized; authenticated user claims (`ClaimsPrincipal`) propagate into tool execution context.
-- **Multi-Step Agent Orchestration**: Multi-tool agent execution verified (e.g. `GetLowStockItemsAsync` -> `GetWarehousesAsync`), rendering step-by-step traces (`AgentActivityStep`) in Angular Copilot UI.
-- **CORS & Preflight Reliability**: Preflight `OPTIONS` routing configured using `app.UseRouting()` before `app.UseCors()`, resolving browser CORS login failures while enforcing JWT authentication.
-- **Authentication & Authorization**: JWT token issuance, identity/role claims, and PBKDF2 password hashing verified.
-- **Session Persistence**: Persistent session restoration verified across browser refreshes (F5) via `GET /api/v1/auth/me`.
+- **Test Suite Baseline**: 93 / 93 Automated Unit Tests Passing.
+- **Authentication & Session Persistence**: Angular browser login verified; browser refresh (F5) restores authenticated user state via `GET /api/v1/auth/me`.
+- **Operations Dashboard & Telemetry**: Dashboard telemetry verified online; `/health/ready` probe reports `Healthy`.
+- **AI Copilot & Multi-Tool Execution**: Verified natural-language prompt *"Which products are currently low in stock?"* sequentially executed `GetLowStockItemsAsync` and `GetWarehousesAsync`, rendered visual step-by-step traces (`AgentActivityStep`), and returned factual grounded answers.
+- **Model Context Protocol (MCP) Server**: Tool discovery (`GET /api/v1/mcp/tools`) and tool execution (`POST /api/v1/mcp/tools/call`) verified.
+- **Azure OpenAI Integration Status**: `Azure OpenAI live connectivity: NOT VERIFIED` (configured as production-ready; live Azure API keys/endpoints were not supplied).
+- **Security & Secret Handling**: Azure API keys and JWT credentials managed strictly via environment variables, never hardcoded, exposed to Angular, or committed.
 - **Role Permissions & Enforcement**: Unauthenticated endpoints return HTTP 401; Viewer read access returns HTTP 200, write attempts return HTTP 403 Forbidden; Operator write operations return HTTP 201/200; Admin metrics returns HTTP 200 OK.
-- **PostgreSQL Role Persistence**: User-to-role relationships persisted and verified in `Users`, `Roles`, and `UserRoles` database tables.
-- **Kafka Resilience**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish.
-- **Idempotency**: PostgreSQL `ProcessedEvents` persistence verified with zero duplicate processing.
+- **Kafka Resilience & Idempotency**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish; PostgreSQL `ProcessedEvents` idempotency verified.
