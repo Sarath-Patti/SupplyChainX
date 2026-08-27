@@ -14,8 +14,46 @@ export class AuthService {
 
   currentUser = signal<User | null>(this.getStoredUser());
   token = signal<string | null>(this.getStoredToken());
+  isInitialized = signal<boolean>(false);
 
-  constructor(private readonly http: HttpClient) {}
+  private initPromise: Promise<boolean> | null = null;
+
+  constructor(private readonly http: HttpClient) {
+    this.initializeSession();
+  }
+
+  initializeSession(): Promise<boolean> {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = new Promise<boolean>((resolve) => {
+      const storedToken = this.getStoredToken();
+      if (!storedToken) {
+        this.token.set(null);
+        this.currentUser.set(null);
+        this.isInitialized.set(true);
+        resolve(false);
+        return;
+      }
+
+      this.token.set(storedToken);
+      this.fetchCurrentUser().subscribe({
+        next: (user) => {
+          this.currentUser.set(user);
+          this.isInitialized.set(true);
+          resolve(true);
+        },
+        error: () => {
+          this.logout();
+          this.isInitialized.set(true);
+          resolve(false);
+        }
+      });
+    });
+
+    return this.initPromise;
+  }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
@@ -29,11 +67,21 @@ export class AuthService {
     );
   }
 
+  fetchCurrentUser(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/me`).pipe(
+      tap((user) => {
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        this.currentUser.set(user);
+      })
+    );
+  }
+
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
     this.token.set(null);
+    this.initPromise = null;
   }
 
   getToken(): string | null {
@@ -75,6 +123,7 @@ export class AuthService {
     localStorage.setItem(this.USER_KEY, JSON.stringify(authResult.user));
     this.token.set(authResult.token);
     this.currentUser.set(authResult.user);
+    this.isInitialized.set(true);
   }
 
   private getStoredToken(): string | null {

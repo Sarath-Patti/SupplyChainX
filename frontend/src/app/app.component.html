@@ -1,17 +1,23 @@
+<!-- Loading Overlay During Async Session Initialization -->
+<div class="auth-loading-overlay" *ngIf="!authService.isInitialized()">
+  <div class="spinner"></div>
+  <p>Authenticating Session...</p>
+</div>
+
 <!-- Full Screen Layout for Auth Pages -->
-<div *ngIf="!authService.isLoggedIn()">
+<div *ngIf="authService.isInitialized() && !authService.isLoggedIn()">
   <router-outlet></router-outlet>
 </div>
 
 <!-- Authenticated Dashboard Layout -->
-<div class="app-layout" *ngIf="authService.isLoggedIn()">
+<div class="app-layout" *ngIf="authService.isInitialized() && authService.isLoggedIn()">
   <!-- Sidebar Navigation -->
   <aside class="sidebar">
     <div class="brand">
       <div class="logo-icon">⚡</div>
       <div class="brand-text">
         <h2>SupplyChainX</h2>
-        <span class="version-badge">v0.9.0</span>
+        <span class="version-badge">v1.0.0</span>
       </div>
     </div>
 

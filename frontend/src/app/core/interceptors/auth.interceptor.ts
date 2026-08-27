@@ -2,13 +2,14 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
-import { AuthService } from '../services/auth.service';
 import { environment } from '../../../environments/environment';
 
+const TOKEN_KEY = 'supplychainx_token';
+const USER_KEY = 'supplychainx_user';
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
   const router = inject(Router);
-  const token = authService.getToken();
+  const token = localStorage.getItem(TOKEN_KEY);
 
   let authReq = req;
 
@@ -23,10 +24,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        authService.logout();
-        router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        if (!router.url.includes('/login')) {
+          router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+        }
       } else if (error.status === 403) {
-        router.navigate(['/unauthorized']);
+        if (!router.url.includes('/unauthorized')) {
+          router.navigate(['/unauthorized']);
+        }
       }
       return throwError(() => error);
     })

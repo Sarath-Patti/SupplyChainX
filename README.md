@@ -1,8 +1,8 @@
 # SupplyChainX
 
-**Version**: `v0.9.0`<br/>
-**Milestone**: `v0.9 – Authentication & Role-Based Authorization`<br/>
-**Status**: `v0.9 – Verified`
+**Version**: `v1.0.0`<br/>
+**Milestone**: `v1.0 – Production-Grade Frontend Authentication & User Experience`<br/>
+**Status**: `v1.0 – Verified`
 
 SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, and an Angular 19 management dashboard.
 
@@ -44,7 +44,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
   ┌──────────────────────────┐
   │ Operational Monitoring   │
   │ Metrics & Health Checks  │
-  └──────────────────────────┘
+  └────────────┬─────────────┘
 ```
 
 ---
@@ -125,6 +125,21 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Angular Client Authentication**: Integrated `AuthService` state management, functional `authInterceptor` injecting `Authorization: Bearer` headers, `authGuard` / `roleGuard` route protection, `/login` & `/register` views, header user badge/logout button, and permission-based action control (`authService.canWrite()`).
 - **Automated & Manual Verification**: Backend build passed (0 errors, 0 warnings), 82/82 backend unit tests passed, and live terminal HTTP verification confirmed 401 unauthenticated enforcement, Viewer read (200) / write (403), Operator write (201), and Admin metrics (200).
 
+### **v1.0 — Production-Grade Frontend Authentication & User Experience**
+- **Complete Angular Authentication Flow**: Implemented production-grade login (`/login`), user registration (`/register`), and unauthorized access views (`/unauthorized`) using existing backend REST APIs (`POST /api/v1/auth/login`, `POST /api/v1/auth/register`, `GET /api/v1/auth/me`).
+- **JWT Session Persistence Across Refresh**: Persistent authentication state in `localStorage` with deterministic asynchronous session restoration (`initializeSession`). Upon browser refresh (F5), the Angular application automatically validates the stored JWT via `GET /api/v1/auth/me` and restores the user's profile and roles without redirecting to `/login`.
+- **Angular HTTP Interceptor (`authInterceptor`)**: Centralized HTTP interceptor automatically injecting `Authorization: Bearer <token>` into all outbound protected API requests targeting the backend URL.
+- **Protected Routes & Route Guards (`authGuard` & `roleGuard`)**: Protected routes (`/dashboard`, `/products`, `/warehouses`, `/inventory`) integrated with async route guards that await session initialization before evaluating access. Unauthenticated users are redirected to `/login?returnUrl=...`.
+- **Role-Aware UI Action Control**:
+  - **Viewer**: Full read access across all management pages. Protected write action controls (`Add`, `Edit`, `Delete`, `Adjust Stock`) are hidden via `*ngIf="authService.canWrite()"`.
+  - **Operator**: Authorized write controls enabled across Product, Warehouse, and Inventory management workflows.
+  - **Admin**: Full system access including protected operational metrics.
+- **Centralized Error Handling (401 & 403)**:
+  - **HTTP 401 Unauthorized**: Clears stale session tokens and redirects to `/login`.
+  - **HTTP 403 Forbidden**: Preserves session state and redirects to `/unauthorized` without logging the user out.
+- **Application Shell & User Experience**: Top header displaying active username, role badges (`Admin`, `Operator`, `Viewer`), UTC clock, system health widget, and logout action button.
+- **Frontend & Backend Verification**: Angular build passed (`ng build`), backend build passed (0 errors, 0 warnings), 82/82 backend unit tests passed, and manual browser verification completed including F5 refresh persistence and logout protection.
+
 ---
 
 ## Technology Stack
@@ -136,7 +151,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
 - **Messaging**: Apache Kafka 3.8.0 (`Confluent.Kafka` 2.6.0)
 - **Observability & Health**: ASP.NET Core Health Checks, `System.Diagnostics.Metrics`, Serilog
-- **Testing**: xUnit, FluentAssertions, NSubstitute, EF Core InMemory
+- **Testing**: xUnit, FluentAssertions, NSubstitute, EF Core InMemory, Jasmine/Karma
 - **Containerization**: Docker & Docker Compose
 
 ---
@@ -145,11 +160,11 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v0.8 / v0.9)
+├── frontend/                                 # Angular Client Application (v1.0)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
-│   │   │   │   ├── guards/                   # authGuard, roleGuard
+│   │   │   │   ├── guards/                   # authGuard, roleGuard (with async initialization await)
 │   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection)
 │   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory Models
 │   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService
@@ -232,6 +247,7 @@ npm start
 - **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings.
 - **Test Suite**: 82 / 82 Automated Unit Tests Passing.
 - **Authentication & Authorization**: JWT token issuance, identity/role claims, and PBKDF2 password hashing verified.
+- **Session Persistence**: Persistent session restoration verified across browser refreshes (F5) via `GET /api/v1/auth/me`.
 - **Role Permissions & Enforcement**: Unauthenticated endpoints return HTTP 401; Viewer read access returns HTTP 200, write attempts return HTTP 403 Forbidden; Operator write operations return HTTP 201/200; Admin metrics returns HTTP 200 OK.
 - **PostgreSQL Role Persistence**: User-to-role relationships persisted and verified in `Users`, `Roles`, and `UserRoles` database tables.
 - **Frontend UI & Integration**: Angular auth interceptor, route guards, and permission-conditioned action buttons integrated with real ASP.NET Core backend endpoints.

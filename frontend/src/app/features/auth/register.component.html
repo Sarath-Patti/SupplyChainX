@@ -38,6 +38,15 @@
       </div>
 
       <div class="form-group">
+        <label for="role">Requested Account Role</label>
+        <select id="role" [(ngModel)]="model.role" name="role" required>
+          <option value="Viewer">Viewer (Read-Only Access)</option>
+          <option value="Operator">Operator (Inventory & Warehouse Operations)</option>
+          <option value="Admin">Admin (Full Administrative Access)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label for="password">Password</label>
         <input
           id="password"

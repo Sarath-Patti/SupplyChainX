@@ -16,7 +16,8 @@ export class RegisterComponent {
   model: RegisterRequest = {
     username: '',
     email: '',
-    password: ''
+    password: '',
+    role: 'Viewer'
   };
 
   confirmPassword = '';
@@ -34,7 +35,7 @@ export class RegisterComponent {
 
   onSubmit(): void {
     if (!this.model.username || !this.model.email || !this.model.password) {
-      this.errorMessage = 'All fields are required.';
+      this.errorMessage = 'All required fields must be completed.';
       return;
     }
 
