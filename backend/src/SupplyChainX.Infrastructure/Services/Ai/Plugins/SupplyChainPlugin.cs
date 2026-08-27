@@ -28,7 +28,7 @@ public class SupplyChainPlugin
         CancellationToken cancellationToken = default)
     {
         var result = await _productService.GetProductsAsync(new PaginationParams { Page = page, PageSize = pageSize }, true, cancellationToken);
-        return result.Items.ToList();
+        return result?.Items?.ToList() ?? new List<ProductDto>();
     }
 
     [KernelFunction, Description("Gets a specific product by its ID or SKU code.")]
@@ -49,7 +49,7 @@ public class SupplyChainPlugin
         }
 
         var products = await _productService.GetProductsAsync(new PaginationParams { Page = 1, PageSize = 100 }, null, cancellationToken);
-        return products.Items.FirstOrDefault(p => p.Sku.Equals(identifier, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == identifier);
+        return products?.Items?.FirstOrDefault(p => p.Sku.Equals(identifier, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == identifier);
     }
 
     [KernelFunction, Description("Gets a list of active warehouses in the supply chain network.")]
@@ -59,7 +59,7 @@ public class SupplyChainPlugin
         CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.GetWarehousesAsync(new PaginationParams { Page = page, PageSize = pageSize }, true, cancellationToken);
-        return result.Items.ToList();
+        return result?.Items?.ToList() ?? new List<WarehouseDto>();
     }
 
     [KernelFunction, Description("Gets inventory records across warehouses with details of available and reserved stock.")]
@@ -69,7 +69,7 @@ public class SupplyChainPlugin
         CancellationToken cancellationToken = default)
     {
         var result = await _inventoryService.GetInventoryAsync(new PaginationParams { Page = page, PageSize = pageSize }, null, null, cancellationToken);
-        return result.Items.ToList();
+        return result?.Items?.ToList() ?? new List<InventoryDto>();
     }
 
     [KernelFunction, Description("Gets inventory items that are currently low in stock (where available stock is at or below minimum stock threshold).")]
@@ -77,6 +77,6 @@ public class SupplyChainPlugin
         CancellationToken cancellationToken = default)
     {
         var result = await _inventoryService.GetInventoryAsync(new PaginationParams { Page = 1, PageSize = 100 }, null, null, cancellationToken);
-        return result.Items.Where(i => i.AvailableQuantity <= i.MinimumStockThreshold).ToList();
+        return result?.Items?.Where(i => i.AvailableQuantity <= i.MinimumStockThreshold).ToList() ?? new List<InventoryDto>();
     }
 }

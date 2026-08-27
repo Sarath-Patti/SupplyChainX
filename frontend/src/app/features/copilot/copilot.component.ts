@@ -22,7 +22,7 @@ export class CopilotComponent implements AfterViewChecked {
   messages: ChatMessage[] = [
     {
       role: 'assistant',
-      content: '### 🤖 Welcome to SupplyChainX AI Copilot!\n\nI am grounded in real-time database telemetry via Microsoft Semantic Kernel. Ask me about products, warehouse stock levels, low-stock alerts, or executive summaries.',
+      content: '### 🤖 Welcome to SupplyChainX Agentic AI Copilot!\n\nI am powered by Microsoft Semantic Kernel & Model Context Protocol (MCP). I can automatically plan and execute multi-tool workflows across products, warehouses, and inventory telemetry.',
       timestampUtc: new Date().toISOString()
     }
   ];
@@ -62,6 +62,7 @@ export class CopilotComponent implements AfterViewChecked {
           role: 'assistant',
           content: res.response,
           toolsInvoked: res.toolsInvoked,
+          activityTrace: res.activityTrace,
           timestampUtc: res.timestampUtc
         };
         this.messages.push(assistantMessage);
@@ -78,7 +79,7 @@ export class CopilotComponent implements AfterViewChecked {
     this.messages = [
       {
         role: 'assistant',
-        content: 'Chat session reset. How can I assist you with SupplyChainX operations?',
+        content: 'Agentic session reset. How can I assist you with SupplyChainX operations?',
         timestampUtc: new Date().toISOString()
       }
     ];

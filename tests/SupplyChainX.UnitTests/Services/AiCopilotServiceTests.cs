@@ -83,12 +83,20 @@ public class AiCopilotServiceTests
             .GetInventoryAsync(Arg.Any<PaginationParams>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>())
             .Returns(new PagedResult<InventoryDto>(lowStockInventory, 1, 100, 1));
 
+        _warehouseServiceMock
+            .GetWarehousesAsync(Arg.Any<PaginationParams>(), Arg.Any<bool?>(), Arg.Any<CancellationToken>())
+            .Returns(new PagedResult<WarehouseDto>(new List<WarehouseDto>
+            {
+                new WarehouseDto(Guid.NewGuid(), "Main Warehouse", "Building 1", true, DateTime.UtcNow, null)
+            }, 1, 100, 1));
+
         // Act
         var result = await _service.ChatAsync(new ChatRequest("Which products are low in stock?"), authenticatedUser);
 
         // Assert
         result.Should().NotBeNull();
         result.ToolsInvoked.Should().Contain("GetLowStockItemsAsync");
+        result.ActivityTrace.Should().NotBeNullOrEmpty();
         result.Response.Should().Contain("Critical Product");
         result.Response.Should().Contain("SKU-ALERT");
     }

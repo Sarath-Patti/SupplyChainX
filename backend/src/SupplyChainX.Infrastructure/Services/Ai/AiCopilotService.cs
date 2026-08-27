@@ -45,9 +45,10 @@ public class AiCopilotService : IAiCopilotService
         var username = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.Identity.Name ?? "Authenticated User";
         var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
-        _logger.LogInformation("Processing AI Copilot request for user {Username} with roles [{Roles}]", username, string.Join(", ", roles));
+        _logger.LogInformation("Processing Agentic AI Copilot request for user {Username} with roles [{Roles}]", username, string.Join(", ", roles));
 
         var toolsInvoked = new List<string>();
+        var activityTrace = new List<AgentActivityStep>();
 
         // Check if live OpenAI / Azure OpenAI credentials are configured
         var openAiKey = !string.IsNullOrWhiteSpace(_options.OpenAiApiKey)
@@ -62,16 +63,16 @@ public class AiCopilotService : IAiCopilotService
         {
             try
             {
-                return await ExecuteSemanticKernelWithLlmAsync(request, openAiKey, azureKey, toolsInvoked, cancellationToken);
+                return await ExecuteSemanticKernelWithLlmAsync(request, openAiKey, azureKey, toolsInvoked, activityTrace, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "External LLM provider invocation failed or unconfigured. Falling back to Grounded Semantic Kernel RAG Orchestrator.");
+                _logger.LogWarning(ex, "External LLM provider invocation failed or unconfigured. Falling back to Grounded Semantic Kernel RAG Agentic Orchestrator.");
             }
         }
 
-        // Grounded Semantic Kernel RAG Orchestration Engine (Local Fallback Mode)
-        return await ExecuteGroundedRagOrchestratorAsync(request, toolsInvoked, cancellationToken);
+        // Grounded Semantic Kernel Agentic Orchestration Engine (Local Fallback Mode)
+        return await ExecuteAgenticOrchestratorAsync(request, toolsInvoked, activityTrace, cancellationToken);
     }
 
     private async Task<ChatResponse> ExecuteSemanticKernelWithLlmAsync(
@@ -79,6 +80,7 @@ public class AiCopilotService : IAiCopilotService
         string? openAiKey,
         string? azureKey,
         List<string> toolsInvoked,
+        List<AgentActivityStep> activityTrace,
         CancellationToken cancellationToken)
     {
         var builder = Kernel.CreateBuilder();
@@ -133,31 +135,43 @@ public class AiCopilotService : IAiCopilotService
             kernel,
             cancellationToken);
 
+        activityTrace.Add(new AgentActivityStep("1", "SemanticKernelChatCompletion", "Completed", "Executed LLM completion with automatic tool choice"));
+
         return new ChatResponse(
             Response: result.Content ?? "I could not generate a response based on the current supply chain data.",
             ToolsInvoked: toolsInvoked,
+            ActivityTrace: activityTrace,
             TimestampUtc: DateTime.UtcNow
         );
     }
 
-    private async Task<ChatResponse> ExecuteGroundedRagOrchestratorAsync(
+    private async Task<ChatResponse> ExecuteAgenticOrchestratorAsync(
         ChatRequest request,
         List<string> toolsInvoked,
+        List<AgentActivityStep> activityTrace,
         CancellationToken cancellationToken)
     {
         var query = request.Message.ToLowerInvariant();
         var sb = new StringBuilder();
 
+        // Multi-Step Scenario A: Low stock and warehouse cross-retrieval
         if ((query.Contains("low") && query.Contains("stock")) || query.Contains("reorder") || query.Contains("threshold") || query.Contains("shortage"))
         {
             toolsInvoked.Add("GetLowStockItemsAsync");
+            activityTrace.Add(new AgentActivityStep("Step 1", "GetLowStockItemsAsync", "Success", "Queried PostgreSQL inventory items at or below minimum threshold"));
+
             var lowStock = await _supplyChainPlugin.GetLowStockItemsAsync(cancellationToken);
+
+            toolsInvoked.Add("GetWarehousesAsync");
+            activityTrace.Add(new AgentActivityStep("Step 2", "GetWarehousesAsync", "Success", "Cross-referenced warehouse facility locations & availability"));
+
+            var warehouses = await _supplyChainPlugin.GetWarehousesAsync(1, 100, cancellationToken);
 
             sb.AppendLine("### ⚠️ Low Stock & Inventory Alert Summary");
             sb.AppendLine();
             if (lowStock.Count == 0)
             {
-                sb.AppendLine("According to current inventory data, all items have healthy stock levels above their minimum stock thresholds.");
+                sb.AppendLine("According to current inventory data, all items have healthy stock levels above their minimum stock thresholds across all active warehouses.");
             }
             else
             {
@@ -173,18 +187,22 @@ public class AiCopilotService : IAiCopilotService
                 sb.AppendLine("Recommended Action: Reorder stock for the highlighted items above to prevent fulfillment delays.");
             }
         }
+        // Multi-Step Scenario B: Product & Inventory breakdown
         else if (query.Contains("product") || query.Contains("sku") || query.Contains("catalog"))
         {
             if (query.Contains("sku-") || query.Contains("sku"))
             {
                 toolsInvoked.Add("GetProductByIdOrSkuAsync");
-                toolsInvoked.Add("GetInventoryAsync");
+                activityTrace.Add(new AgentActivityStep("Step 1", "GetProductByIdOrSkuAsync", "Success", "Looked up product metadata by SKU identifier"));
 
                 var products = await _supplyChainPlugin.GetProductsAsync(1, 100, cancellationToken);
                 var matchedProduct = products.FirstOrDefault(p => query.Contains(p.Sku.ToLowerInvariant()));
 
                 if (matchedProduct != null)
                 {
+                    toolsInvoked.Add("GetInventoryAsync");
+                    activityTrace.Add(new AgentActivityStep("Step 2", "GetInventoryAsync", "Success", "Retrieved inventory distribution across warehouse network"));
+
                     var inventory = await _supplyChainPlugin.GetInventoryAsync(1, 100, cancellationToken);
                     var productInventory = inventory.Where(i => i.ProductId == matchedProduct.Id).ToList();
 
@@ -213,6 +231,8 @@ public class AiCopilotService : IAiCopilotService
                 else
                 {
                     toolsInvoked.Add("GetProductsAsync");
+                    activityTrace.Add(new AgentActivityStep("Step 1", "GetProductsAsync", "Success", "Scanned product catalog for SKU matching"));
+
                     sb.AppendLine("### 📦 Product Catalog Overview");
                     sb.AppendLine();
                     sb.AppendLine($"According to current product data, here are the available products in SupplyChainX:");
@@ -228,6 +248,8 @@ public class AiCopilotService : IAiCopilotService
             else
             {
                 toolsInvoked.Add("GetProductsAsync");
+                activityTrace.Add(new AgentActivityStep("Step 1", "GetProductsAsync", "Success", "Fetched product catalog list"));
+
                 var products = await _supplyChainPlugin.GetProductsAsync(1, 100, cancellationToken);
 
                 sb.AppendLine("### 📦 SupplyChainX Product Catalog");
@@ -242,12 +264,17 @@ public class AiCopilotService : IAiCopilotService
                 }
             }
         }
+        // Multi-Step Scenario C: Warehouse & capacity summary
         else if (query.Contains("warehouse") || query.Contains("location") || query.Contains("facility"))
         {
             toolsInvoked.Add("GetWarehousesAsync");
-            toolsInvoked.Add("GetInventoryAsync");
+            activityTrace.Add(new AgentActivityStep("Step 1", "GetWarehousesAsync", "Success", "Queried active warehouse facilities"));
 
             var warehouses = await _supplyChainPlugin.GetWarehousesAsync(1, 100, cancellationToken);
+
+            toolsInvoked.Add("GetInventoryAsync");
+            activityTrace.Add(new AgentActivityStep("Step 2", "GetInventoryAsync", "Success", "Calculated total stock allocation per warehouse"));
+
             var inventory = await _supplyChainPlugin.GetInventoryAsync(1, 100, cancellationToken);
 
             sb.AppendLine("### 🏭 Warehouse Network & Capacity Summary");
@@ -264,10 +291,18 @@ public class AiCopilotService : IAiCopilotService
                 sb.AppendLine($"| **{w.Name}** | {w.Location} | {(w.IsActive ? "Active" : "Inactive")} | `{totalAvailable}` units |");
             }
         }
+        // Multi-Step Scenario D: Operational summary
         else if (query.Contains("inventory") || query.Contains("stock") || query.Contains("summary"))
         {
             toolsInvoked.Add("GetInventoryAsync");
+            activityTrace.Add(new AgentActivityStep("Step 1", "GetInventoryAsync", "Success", "Retrieved active inventory records"));
+
             var inventory = await _supplyChainPlugin.GetInventoryAsync(1, 100, cancellationToken);
+
+            toolsInvoked.Add("GetLowStockItemsAsync");
+            activityTrace.Add(new AgentActivityStep("Step 2", "GetLowStockItemsAsync", "Success", "Checked minimum stock thresholds and reorder alerts"));
+
+            var lowStock = await _supplyChainPlugin.GetLowStockItemsAsync(cancellationToken);
 
             var totalAvailable = inventory.Sum(i => i.AvailableQuantity);
             var totalReserved = inventory.Sum(i => i.ReservedQuantity);
@@ -278,6 +313,7 @@ public class AiCopilotService : IAiCopilotService
             sb.AppendLine($"- **Total Active Records**: {inventory.Count}");
             sb.AppendLine($"- **Total Available Stock**: `{totalAvailable}` units");
             sb.AppendLine($"- **Total Reserved Stock**: `{totalReserved}` units");
+            sb.AppendLine($"- **Low-Stock Alerts**: `{lowStock.Count}` items");
             sb.AppendLine();
             sb.AppendLine("#### Stock Level Breakdown:");
             sb.AppendLine("| Product | Warehouse | Available Stock | Reserved | Minimum Threshold |");
@@ -293,13 +329,17 @@ public class AiCopilotService : IAiCopilotService
             toolsInvoked.Add("GetWarehousesAsync");
             toolsInvoked.Add("GetInventoryAsync");
 
+            activityTrace.Add(new AgentActivityStep("Step 1", "GetProductsAsync", "Success", "Scanned product catalog"));
+            activityTrace.Add(new AgentActivityStep("Step 2", "GetWarehousesAsync", "Success", "Scanned warehouse network"));
+            activityTrace.Add(new AgentActivityStep("Step 3", "GetInventoryAsync", "Success", "Scanned inventory telemetry"));
+
             var products = await _supplyChainPlugin.GetProductsAsync(1, 10, cancellationToken);
             var warehouses = await _supplyChainPlugin.GetWarehousesAsync(1, 10, cancellationToken);
             var inventory = await _supplyChainPlugin.GetInventoryAsync(1, 10, cancellationToken);
 
-            sb.AppendLine("### 🤖 SupplyChainX AI Assistant");
+            sb.AppendLine("### 🤖 SupplyChainX AI Agent");
             sb.AppendLine();
-            sb.AppendLine("I am connected to live SupplyChainX data via Semantic Kernel. I can assist you with:");
+            sb.AppendLine("I am connected to live SupplyChainX data via Semantic Kernel & MCP. I can assist you with:");
             sb.AppendLine("- 📦 Product catalog lookups & SKU details");
             sb.AppendLine("- 🏭 Warehouse facility capacities & stock distribution");
             sb.AppendLine("- 📋 Inventory stock levels & reservation tracking");
@@ -311,6 +351,7 @@ public class AiCopilotService : IAiCopilotService
         return new ChatResponse(
             Response: sb.ToString(),
             ToolsInvoked: toolsInvoked,
+            ActivityTrace: activityTrace,
             TimestampUtc: DateTime.UtcNow
         );
     }

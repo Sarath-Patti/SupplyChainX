@@ -2,8 +2,8 @@
   <!-- Page Header -->
   <div class="copilot-header">
     <div class="header-title">
-      <h2>🤖 SupplyChainX AI Copilot</h2>
-      <span class="engine-badge">Microsoft Semantic Kernel & RAG</span>
+      <h2>🤖 SupplyChainX Agentic AI Copilot</h2>
+      <span class="engine-badge">Semantic Kernel & MCP Agent</span>
     </div>
     <button class="clear-btn" (click)="clearChat()" title="Clear Chat History">
       <span>🔄</span> Reset Session
@@ -36,18 +36,29 @@
 
       <div class="message-bubble" [class.user-bubble]="msg.role === 'user'" [class.assistant-bubble]="msg.role === 'assistant'">
         <div class="message-header">
-          <span class="sender-name">{{ msg.role === 'user' ? 'You' : 'SupplyChainX AI' }}</span>
+          <span class="sender-name">{{ msg.role === 'user' ? 'You' : 'SupplyChainX Agent' }}</span>
           <span class="timestamp" *ngIf="msg.timestampUtc">{{ msg.timestampUtc | date:'shortTime' }}</span>
         </div>
 
         <div class="message-content" [innerHTML]="msg.content"></div>
 
-        <!-- Semantic Kernel Tools Invoked Badges -->
+        <!-- Semantic Kernel & MCP Tools Invoked Badges -->
         <div class="tools-container" *ngIf="msg.toolsInvoked && msg.toolsInvoked.length > 0">
           <span class="tools-label">🔧 Tools Executed:</span>
           <span *ngFor="let tool of msg.toolsInvoked" class="tool-badge">
             {{ tool }}
           </span>
+        </div>
+
+        <!-- Agent Activity Trace -->
+        <div class="activity-trace" *ngIf="msg.activityTrace && msg.activityTrace.length > 0">
+          <div class="trace-header">🧠 Agent Execution Trace:</div>
+          <div *ngFor="let step of msg.activityTrace" class="trace-step">
+            <span class="step-icon">⚡</span>
+            <span class="step-name">{{ step.step }}:</span>
+            <span class="step-tool">`{{ step.toolName }}`</span>
+            <span class="step-details">{{ step.details }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -59,7 +70,7 @@
         <div class="typing-indicator">
           <span></span><span></span><span></span>
         </div>
-        <span class="loading-text">Querying Semantic Kernel Plugins & PostgreSQL...</span>
+        <span class="loading-text">Agentic planning & multi-tool orchestration...</span>
       </div>
     </div>
   </div>

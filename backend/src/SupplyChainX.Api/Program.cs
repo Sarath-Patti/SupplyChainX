@@ -33,8 +33,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "SupplyChainX API",
-        Version = "v0.9.0",
-        Description = "Enterprise Inventory & Order Management Platform API (v0.9 Authentication & Authorization)"
+        Version = "v1.2.0",
+        Description = "Enterprise Inventory & Order Management Platform API (v1.2 Agentic AI & Model Context Protocol)"
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -63,18 +63,23 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configure CORS for Angular frontend initialization
+// Configure CORS for Angular frontend development origin
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .WithExposedHeaders("X-Correlation-ID");
     });
 });
 
 var app = builder.Build();
+
+// Enable Routing before CORS so preflight OPTIONS requests are handled by CORS middleware without 405 Method Not Allowed
+app.UseRouting();
+app.UseCors("AllowFrontend");
 
 // Correlation ID Tracing Middleware
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -88,7 +93,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v0.9.0");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SupplyChainX API v1.2.0");
     });
 }
 
@@ -97,8 +102,6 @@ app.UseSerilogRequestLogging(options =>
 {
     options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms [CorrelationId: {CorrelationId}]";
 });
-
-app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,10 +1,10 @@
 # SupplyChainX
 
-**Version**: `v1.1.0`<br/>
-**Milestone**: `v1.1 – AI Copilot, RAG & Semantic Kernel`<br/>
-**Status**: `v1.1 – Verified`
+**Version**: `v1.2.0`<br/>
+**Milestone**: `v1.2 – Agentic AI & Model Context Protocol (MCP)`<br/>
+**Status**: `v1.2 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG engine, and an Angular 19 management dashboard with an integrated AI Copilot.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG & Agentic engine, Model Context Protocol (MCP) server, and an Angular 19 management dashboard with an integrated AI Copilot.
 
 ---
 
@@ -19,19 +19,19 @@ SupplyChainX is an enterprise inventory and order management platform built on a
                                ▼
   ┌──────────────────────────────────────────────────────────┐
   │              SupplyChainX.Api (.NET 8)                   │
-  │   Controllers (Domain & AI), Auth Middleware, Metrics    │
+  │ Controllers (Domain, AI & MCP), Auth Middleware, Metrics │
   └────────────┬────────────────────────────────┬────────────┘
                │                                │
                ▼                                ▼
   ┌──────────────────────────┐    ┌──────────────────────────┐
   │ SupplyChainX.Application │    │ PostgreSQL Database (EF) │
-  │  Services, DTOs & IAi    │    │  Entities, Roles & Idem  │
+  │ Services, DTOs & IMcp    │    │  Entities, Roles & Idem  │
   └────────────┬─────────────┘    └──────────────────────────┘
-               │ (Semantic Kernel Tools & Events)
+               │ (Semantic Kernel & MCP Tools)
                ▼
   ┌──────────────────────────┐
-  │ SupplyChainX.Infrastruct │
-  │  Semantic Kernel & RAG   │
+  │  Semantic Kernel Agent   │
+  │   & MCP Server Layer     │
   └────────────┬─────────────┘
                │ (Publish Events)
                ▼
@@ -162,13 +162,27 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Multi-Turn Context & Error Handling**: Supports multi-turn chat history context with robust validation (HTTP 400 for empty prompts, HTTP 401 for unauthenticated requests).
 - **Automated & Manual Verification**: Frontend build passed (`ng build`), backend build passed (0 errors, 0 warnings), 87/87 backend unit tests passed, live endpoint 401 unauthenticated enforcement verified, real data retrieval verified, session persistence after F5 refresh verified, and logout protection verified.
 
+### **v1.2 — Agentic AI & Model Context Protocol (MCP)**
+- **Agentic AI & Multi-Step Tool Orchestration**: Evolved the Semantic Kernel AI engine into a controlled Agentic AI Planner (`AiCopilotService`) capable of evaluating complex multi-step user prompts, dynamically planning execution sequences, and chaining multiple domain tools to synthesize grounded answers.
+- **Model Context Protocol (MCP) Server**: Implemented a standard C# MCP server (`McpServerService`) using the official `ModelContextProtocol` package (`v0.1.0-preview.1.25171.12`). Exposed clean REST API endpoints (`McpController`) at `GET /api/v1/mcp/tools` (tool discovery) and `POST /api/v1/mcp/tools/call` (tool execution).
+- **Exposed MCP Tools**:
+  - `supplychainx_get_products`: Catalog products retrieval with pagination.
+  - `supplychainx_get_warehouses`: Active warehouse facility lookups.
+  - `supplychainx_get_inventory`: Inventory stock distribution lookups.
+  - `supplychainx_get_low_stock`: Low-stock threshold detection (`AvailableQuantity <= MinimumStockThreshold`).
+- **RBAC & MCP Security Model**: All MCP endpoints and AI tool invocations enforce JWT authentication (`[Authorize]`). Identity and roles (`ClaimsPrincipal`) propagate directly into tool handlers. Anonymous access attempts return HTTP 401 Unauthorized, while write operations over MCP remain strictly prohibited to enforce Viewer/Operator/Admin boundaries.
+- **Angular Copilot Execution Trace**: Updated `CopilotComponent` to render live `🧠 Agent Execution Trace` (`AgentActivityStep`) details alongside `🔧 Tools Executed` badges, providing visual transparency for multi-step agent actions.
+- **CORS / Preflight Reliability Fix**: Resolved an initial browser login CORS preflight issue (`Http failure response ... 0 Unknown Error`) by positioning `app.UseCors()` after `app.UseRouting()` in ASP.NET Core middleware pipeline and setting `policy.SetIsOriginAllowed(_ => true)`, enabling browser authentication while preserving JWT authorization.
+- **Automated & Manual Verification**: Frontend build passed (`ng build`), backend build passed (`dotnet build`, 0 warnings, 0 errors), 93/93 automated backend unit tests passed, live endpoint 401 unauthenticated enforcement verified, live MCP tool discovery (`GET /api/v1/mcp/tools`) verified, live MCP tool execution (`POST /api/v1/mcp/tools/call`) verified with real PostgreSQL data, multi-tool agent execution trace (`GetLowStockItemsAsync` -> `GetWarehousesAsync`) verified, session persistence across browser refresh (F5) verified, and logout protection verified.
+
 ---
 
 ## Technology Stack
 
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture, Angular Router, RxJS)
 - **Backend Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
-- **AI & Orchestration**: Microsoft Semantic Kernel (v1.30.0), Generative AI / RAG, Function Calling, Prompt Execution
+- **AI & Agentic Orchestration**: Microsoft Semantic Kernel (v1.30.0), Generative AI / LLM, RAG, Agentic AI Tool Orchestration
+- **Model Context Protocol**: Model Context Protocol (MCP) Server (`ModelContextProtocol` v0.1.0-preview.1.25171.12)
 - **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
 - **Authentication & Security**: JWT Bearer Authentication (`Microsoft.AspNetCore.Authentication.JwtBearer`), PBKDF2 Password Hashing (`PasswordHasher<User>`), Role-Based Authorization
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
@@ -183,13 +197,13 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v1.1)
+├── frontend/                                 # Angular Client Application (v1.2)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
 │   │   │   │   ├── guards/                   # authGuard, roleGuard (with async initialization await)
 │   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection)
-│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory & AI Models
+│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory & AI Models (AgentActivityStep)
 │   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService, AiService
 │   │   │   ├── features/                     # Auth (Login/Register), Copilot, Dashboard, Products, Warehouses, Inventory
 │   │   │   └── layout/                       # Layout & Navigation Header
@@ -199,7 +213,7 @@ SupplyChainX/
 │   ├── SupplyChainX.sln
 │   └── src/
 │       ├── SupplyChainX.Api/                 # Controllers, Middleware & Host Configuration
-│       │   ├── Controllers/                  # AuthController, AiController, HealthController, MetricsController, Domain Controllers
+│       │   ├── Controllers/                  # AuthController, AiController, McpController, HealthController, MetricsController
 │       │   ├── Middleware/                   # CorrelationIdMiddleware, GlobalExceptionHandlingMiddleware
 │       │   ├── Conventions/                  # ApiVersionRouteConvention
 │       │   └── Program.cs
@@ -207,23 +221,24 @@ SupplyChainX/
 │       │   ├── Common/
 │       │   │   ├── Configuration/            # JwtOptions, AiOptions, KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
 │       │   │   ├── Events/                   # Domain Event Contracts
-│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAiCopilotService, IAuthService, IJwtTokenGenerator, IPasswordService
+│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAiCopilotService, IMcpServerService, IAuthService, IJwtTokenGenerator
 │       │   │   └── Models/                   # KafkaConsumerStatusDto
-│       │   ├── DTOs/                         # AuthDtos, AiDtos (ChatRequest, ChatResponse, ChatMessageDto)
+│       │   ├── DTOs/                         # AuthDtos, AiDtos (ChatRequest, ChatResponse, AgentActivityStep), McpDtos
 │       │   └── EventHandlers/                # Product, Warehouse & Inventory Event Handlers
 │       ├── SupplyChainX.Domain/              # Core Domain Entities & Custom Exceptions
 │       │   ├── Entities/                     # User, Role, UserRole, Product, Warehouse, Inventory, ProcessedEvent
 │       │   └── Exceptions/                   # DomainException, NotFoundException, ConflictException
-│       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging, Semantic Kernel & Health Checks
+│       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging, Semantic Kernel, MCP & Health Checks
 │           ├── Health/                       # KafkaHealthCheck
 │           ├── Messaging/Kafka/              # KafkaEventPublisher, KafkaConsumerBackgroundService, KafkaConsumerStatusService
 │           ├── Services/                     # AuthService, JwtTokenGenerator, PasswordService
-│           │   └── Ai/                       # AiCopilotService & SupplyChainPlugin (Semantic Kernel Tools)
+│           │   ├── Ai/                       # AiCopilotService & SupplyChainPlugin (Semantic Kernel Tools)
+│           │   └── Mcp/                      # McpServerService (MCP Server Tools & Call Handler)
 │           └── Persistence/                  # SupplyChainXDbContext & Migrations (AddAuthAndRolesTable)
 ├── infrastructure/                           # Container Orchestration
 │   └── docker-compose.yml                    # PostgreSQL & Kafka Services
 ├── tests/                                    # Automated Test Suites
-│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, AI Copilot, Health & Metrics
+│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, AI Copilot, MCP Server, Health & Metrics
 ├── LICENSE                                   # MIT License
 └── README.md                                 # Project Documentation
 ```
@@ -268,16 +283,15 @@ npm start
 
 ## Verified Invariants & Quality Standards
 
-- **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings.
-- **Test Suite**: 87 / 87 Automated Unit Tests Passing.
-- **AI Copilot & RAG Engine**: Grounded RAG data retrieval verified across Products, Warehouses, Inventory, and Low-Stock items via Semantic Kernel tools (`SupplyChainPlugin`).
-- **AI Security & Authorization**: Unauthenticated AI endpoint requests return HTTP 401 Unauthorized; authenticated Viewer, Operator, and Admin claims enforced per request.
+- **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings (`dotnet build`).
+- **Test Suite**: 93 / 93 Automated Unit Tests Passing.
+- **Model Context Protocol (MCP) Server**: Exposes standard tools (`supplychainx_get_products`, `supplychainx_get_warehouses`, `supplychainx_get_inventory`, `supplychainx_get_low_stock`) via `GET /api/v1/mcp/tools` and `POST /api/v1/mcp/tools/call`.
+- **MCP & Agent Security**: Unauthenticated requests to `/api/v1/ai/chat` and `/api/v1/mcp/*` return HTTP 401 Unauthorized; authenticated user claims (`ClaimsPrincipal`) propagate into tool execution context.
+- **Multi-Step Agent Orchestration**: Multi-tool agent execution verified (e.g. `GetLowStockItemsAsync` -> `GetWarehousesAsync`), rendering step-by-step traces (`AgentActivityStep`) in Angular Copilot UI.
+- **CORS & Preflight Reliability**: Preflight `OPTIONS` routing configured using `app.UseRouting()` before `app.UseCors()`, resolving browser CORS login failures while enforcing JWT authentication.
 - **Authentication & Authorization**: JWT token issuance, identity/role claims, and PBKDF2 password hashing verified.
 - **Session Persistence**: Persistent session restoration verified across browser refreshes (F5) via `GET /api/v1/auth/me`.
 - **Role Permissions & Enforcement**: Unauthenticated endpoints return HTTP 401; Viewer read access returns HTTP 200, write attempts return HTTP 403 Forbidden; Operator write operations return HTTP 201/200; Admin metrics returns HTTP 200 OK.
 - **PostgreSQL Role Persistence**: User-to-role relationships persisted and verified in `Users`, `Roles`, and `UserRoles` database tables.
-- **Frontend UI & Integration**: Angular auth interceptor, route guards, and permission-conditioned action buttons integrated with real ASP.NET Core backend endpoints.
-- **Endpoints**: `/health`, `/health/ready`, `/health/live` remaining publicly accessible.
 - **Kafka Resilience**: Primary and DLQ topics auto-provisioned; 3 retry attempts verified prior to DLQ publish.
-- **Consumer Lag**: Verified consumer lag returns to `0` across active topic partitions.
 - **Idempotency**: PostgreSQL `ProcessedEvents` persistence verified with zero duplicate processing.

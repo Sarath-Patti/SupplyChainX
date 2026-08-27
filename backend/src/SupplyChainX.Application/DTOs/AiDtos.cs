@@ -10,8 +10,16 @@ public record ChatRequest(
     List<ChatMessageDto>? History = null
 );
 
+public record AgentActivityStep(
+    string Step,
+    string ToolName,
+    string Status,
+    string Details
+);
+
 public record ChatResponse(
     string Response,
     List<string>? ToolsInvoked = null,
+    List<AgentActivityStep>? ActivityTrace = null,
     DateTime TimestampUtc = default
 );
