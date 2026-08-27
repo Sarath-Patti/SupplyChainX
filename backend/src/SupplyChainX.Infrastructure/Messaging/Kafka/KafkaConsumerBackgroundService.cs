@@ -235,50 +235,76 @@ public class KafkaConsumerBackgroundService : BackgroundService
 
         _statusService.RecordConsumed(consumeResult.Topic, eventId, eventType);
 
-        using var scope = _scopeFactory.CreateScope();
-        var idempotencyService = scope.ServiceProvider.GetRequiredService<IIdempotencyService>();
-
-        var alreadyProcessed = idempotencyService.HasBeenProcessedAsync(eventId, stoppingToken).GetAwaiter().GetResult();
-        if (alreadyProcessed)
+        string? correlationId = null;
+        try
         {
-            _logger.LogWarning("[DuplicateEventSkipped] Event {EventId} ({EventType}) was already processed from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Committing offset.",
-                eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
-            _statusService.RecordDuplicate(consumeResult.Topic, eventId, eventType);
-            consumer.Commit(consumeResult);
-            return;
-        }
-
-        var (handledSuccessfully, lastException) = DispatchEventWithRetry(
-            scope.ServiceProvider, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value, eventId, eventType, rawJson, stoppingToken);
-
-        if (handledSuccessfully)
-        {
-            idempotencyService.MarkAsProcessedAsync(eventId, eventType, stoppingToken).GetAwaiter().GetResult();
-            consumer.Commit(consumeResult);
-            _statusService.RecordProcessed(consumeResult.Topic, eventId, eventType);
-            _logger.LogInformation("Successfully processed and committed offset for Event {EventId} ({EventType}) on topic {Topic} [Partition {Partition} @ Offset {Offset}]",
-                eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
-        }
-        else
-        {
-            _logger.LogError("[ProcessingFailed] Processing event {EventId} ({EventType}) failed after {MaxRetryAttempts} retries on topic {Topic} [Partition {Partition} @ Offset {Offset}]. Publishing to DLQ...",
-                eventId, eventType, _consumerOptions.MaxRetryAttempts, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
-
-            _statusService.RecordFailure(consumeResult.Topic, eventId, eventType, lastException ?? new InvalidOperationException("Processing failed after retries"));
-
-            var dlqPublished = PublishToDlq(
-                scope.ServiceProvider, consumeResult, eventId, eventType, rawJson, lastException, stoppingToken);
-
-            if (dlqPublished)
+            using var jsonDoc = JsonDocument.Parse(rawJson);
+            if (jsonDoc.RootElement.TryGetProperty("correlationId", out var corrElem))
             {
+                correlationId = corrElem.GetString();
+            }
+        }
+        catch
+        {
+            // Ignore JSON parsing errors for correlation id fallback
+        }
+
+        if (string.IsNullOrWhiteSpace(correlationId) && consumeResult.Message.Headers != null)
+        {
+            var header = consumeResult.Message.Headers.FirstOrDefault(h => h.Key.Equals("x-correlation-id", StringComparison.OrdinalIgnoreCase));
+            if (header != null)
+            {
+                correlationId = System.Text.Encoding.UTF8.GetString(header.GetValueBytes());
+            }
+        }
+
+        using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId ?? eventId.ToString() }))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var idempotencyService = scope.ServiceProvider.GetRequiredService<IIdempotencyService>();
+
+            var alreadyProcessed = idempotencyService.HasBeenProcessedAsync(eventId, stoppingToken).GetAwaiter().GetResult();
+            if (alreadyProcessed)
+            {
+                _logger.LogWarning("[DuplicateEventSkipped] Event {EventId} ({EventType}) was already processed from topic {Topic} [Partition {Partition} @ Offset {Offset}]. Committing offset.",
+                    eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+                _statusService.RecordDuplicate(consumeResult.Topic, eventId, eventType);
                 consumer.Commit(consumeResult);
-                _logger.LogInformation("[DlqCommitted] Successfully published Event {EventId} ({EventType}) to DLQ and committed offset on topic {Topic} [Partition {Partition} @ Offset {Offset}].",
+                return;
+            }
+
+            var (handledSuccessfully, lastException) = DispatchEventWithRetry(
+                scope.ServiceProvider, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value, eventId, eventType, rawJson, stoppingToken);
+
+            if (handledSuccessfully)
+            {
+                idempotencyService.MarkAsProcessedAsync(eventId, eventType, stoppingToken).GetAwaiter().GetResult();
+                consumer.Commit(consumeResult);
+                _statusService.RecordProcessed(consumeResult.Topic, eventId, eventType);
+                _logger.LogInformation("Successfully processed and committed offset for Event {EventId} ({EventType}) on topic {Topic} [Partition {Partition} @ Offset {Offset}]",
                     eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
             }
             else
             {
-                _logger.LogCritical("[DlqPublicationFailed] Permanent processing failure for Event {EventId} ({EventType}) could NOT be published to DLQ. Offset WILL NOT be committed.",
-                    eventId, eventType);
+                _logger.LogError("[ProcessingFailed] Processing event {EventId} ({EventType}) failed after {MaxRetryAttempts} retries on topic {Topic} [Partition {Partition} @ Offset {Offset}]. Publishing to DLQ...",
+                    eventId, eventType, _consumerOptions.MaxRetryAttempts, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+
+                _statusService.RecordFailure(consumeResult.Topic, eventId, eventType, lastException ?? new InvalidOperationException("Processing failed after retries"));
+
+                var dlqPublished = PublishToDlq(
+                    scope.ServiceProvider, consumeResult, eventId, eventType, rawJson, lastException, stoppingToken);
+
+                if (dlqPublished)
+                {
+                    consumer.Commit(consumeResult);
+                    _logger.LogInformation("[DlqCommitted] Successfully published Event {EventId} ({EventType}) to DLQ and committed offset on topic {Topic} [Partition {Partition} @ Offset {Offset}].",
+                        eventId, eventType, consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+                }
+                else
+                {
+                    _logger.LogCritical("[DlqPublicationFailed] Permanent processing failure for Event {EventId} ({EventType}) could NOT be published to DLQ. Offset WILL NOT be committed.",
+                        eventId, eventType);
+                }
             }
         }
     }
