@@ -1,0 +1,89 @@
+<div class="copilot-container">
+  <!-- Page Header -->
+  <div class="copilot-header">
+    <div class="header-title">
+      <h2>🤖 SupplyChainX AI Copilot</h2>
+      <span class="engine-badge">Microsoft Semantic Kernel & RAG</span>
+    </div>
+    <button class="clear-btn" (click)="clearChat()" title="Clear Chat History">
+      <span>🔄</span> Reset Session
+    </button>
+  </div>
+
+  <!-- Suggested Prompt Quick Pills -->
+  <div class="suggested-prompts">
+    <span class="prompt-label">Quick Insights:</span>
+    <button
+      *ngFor="let p of suggestedPrompts"
+      class="prompt-pill"
+      [disabled]="isLoading"
+      (click)="sendMessage(p.query)">
+      {{ p.label }}
+    </button>
+  </div>
+
+  <!-- Chat History Message Thread -->
+  <div class="chat-thread" #chatContainer>
+    <div
+      *ngFor="let msg of messages"
+      class="message-wrapper"
+      [class.user-wrapper]="msg.role === 'user'"
+      [class.assistant-wrapper]="msg.role === 'assistant'">
+
+      <div class="message-avatar">
+        {{ msg.role === 'user' ? '👤' : '🤖' }}
+      </div>
+
+      <div class="message-bubble" [class.user-bubble]="msg.role === 'user'" [class.assistant-bubble]="msg.role === 'assistant'">
+        <div class="message-header">
+          <span class="sender-name">{{ msg.role === 'user' ? 'You' : 'SupplyChainX AI' }}</span>
+          <span class="timestamp" *ngIf="msg.timestampUtc">{{ msg.timestampUtc | date:'shortTime' }}</span>
+        </div>
+
+        <div class="message-content" [innerHTML]="msg.content"></div>
+
+        <!-- Semantic Kernel Tools Invoked Badges -->
+        <div class="tools-container" *ngIf="msg.toolsInvoked && msg.toolsInvoked.length > 0">
+          <span class="tools-label">🔧 Tools Executed:</span>
+          <span *ngFor="let tool of msg.toolsInvoked" class="tool-badge">
+            {{ tool }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typing Spinner Indicator -->
+    <div class="message-wrapper assistant-wrapper" *ngIf="isLoading">
+      <div class="message-avatar">🤖</div>
+      <div class="message-bubble assistant-bubble loading-bubble">
+        <div class="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="loading-text">Querying Semantic Kernel Plugins & PostgreSQL...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Alert Banner -->
+  <div class="error-banner" *ngIf="errorMessage">
+    <span>⚠️ {{ errorMessage }}</span>
+  </div>
+
+  <!-- Input Bar Area -->
+  <div class="input-area">
+    <input
+      type="text"
+      class="chat-input"
+      placeholder="Ask about products, stock levels, warehouse capacities, or SKU details..."
+      [(ngModel)]="userPrompt"
+      (keyup.enter)="sendMessage()"
+      [disabled]="isLoading"
+    />
+    <button
+      class="send-btn"
+      (click)="sendMessage()"
+      [disabled]="!userPrompt.trim() || isLoading">
+      <span>Send</span> ⚡
+    </button>
+  </div>
+</div>

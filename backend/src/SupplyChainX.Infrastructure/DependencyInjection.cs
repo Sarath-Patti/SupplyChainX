@@ -13,6 +13,8 @@ using SupplyChainX.Infrastructure.Health;
 using SupplyChainX.Infrastructure.Messaging.Kafka;
 using SupplyChainX.Infrastructure.Persistence;
 using SupplyChainX.Infrastructure.Services;
+using SupplyChainX.Infrastructure.Services.Ai;
+using SupplyChainX.Infrastructure.Services.Ai.Plugins;
 
 namespace SupplyChainX.Infrastructure;
 
@@ -118,6 +120,11 @@ public static class DependencyInjection
 
         // 6. Kafka Consumer Hosted Service
         services.AddHostedService<KafkaConsumerBackgroundService>();
+
+        // 7. AI Copilot & Semantic Kernel Services
+        services.Configure<AiOptions>(configuration.GetSection(AiOptions.SectionName));
+        services.AddScoped<SupplyChainPlugin>();
+        services.AddScoped<IAiCopilotService, AiCopilotService>();
 
         return services;
     }

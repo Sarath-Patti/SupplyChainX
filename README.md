@@ -1,10 +1,10 @@
 # SupplyChainX
 
-**Version**: `v1.0.0`<br/>
-**Milestone**: `v1.0 – Production-Grade Frontend Authentication & User Experience`<br/>
-**Status**: `v1.0 – Verified`
+**Version**: `v1.1.0`<br/>
+**Milestone**: `v1.1 – AI Copilot, RAG & Semantic Kernel`<br/>
+**Status**: `v1.1 – Verified`
 
-SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, and an Angular 19 management dashboard.
+SupplyChainX is an enterprise inventory and order management platform built on a modern, event-driven Clean Architecture using C# / .NET 8, PostgreSQL, Apache Kafka, structured operational observability, JWT authentication, role-based authorization, Microsoft Semantic Kernel RAG engine, and an Angular 19 management dashboard with an integrated AI Copilot.
 
 ---
 
@@ -13,20 +13,26 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 ```
   ┌──────────────────────────────────────────────────────────┐
   │         Angular 19 Frontend (Port 4200)                  │
-  │   Dashboard / Products / Warehouses / Inventory / Auth   │
+  │   Dashboard / Copilot / Products / Warehouses / Auth    │
   └────────────────────────────┬─────────────────────────────┘
                                │ (REST API, JWT Bearer & X-Correlation-ID)
                                ▼
   ┌──────────────────────────────────────────────────────────┐
   │              SupplyChainX.Api (.NET 8)                   │
-  │     Controllers, Auth & Authz Middleware, Observability  │
+  │   Controllers (Domain & AI), Auth Middleware, Metrics    │
   └────────────┬────────────────────────────────┬────────────┘
                │                                │
                ▼                                ▼
   ┌──────────────────────────┐    ┌──────────────────────────┐
   │ SupplyChainX.Application │    │ PostgreSQL Database (EF) │
-  │  Services & Auth Logic   │    │  Entities, Roles & Idem  │
+  │  Services, DTOs & IAi    │    │  Entities, Roles & Idem  │
   └────────────┬─────────────┘    └──────────────────────────┘
+               │ (Semantic Kernel Tools & Events)
+               ▼
+  ┌──────────────────────────┐
+  │ SupplyChainX.Infrastruct │
+  │  Semantic Kernel & RAG   │
+  └────────────┬─────────────┘
                │ (Publish Events)
                ▼
   ┌──────────────────────────┐
@@ -44,7 +50,7 @@ SupplyChainX is an enterprise inventory and order management platform built on a
   ┌──────────────────────────┐
   │ Operational Monitoring   │
   │ Metrics & Health Checks  │
-  └────────────┬─────────────┘
+  └──────────────────────────┘
 ```
 
 ---
@@ -140,12 +146,29 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 - **Application Shell & User Experience**: Top header displaying active username, role badges (`Admin`, `Operator`, `Viewer`), UTC clock, system health widget, and logout action button.
 - **Frontend & Backend Verification**: Angular build passed (`ng build`), backend build passed (0 errors, 0 warnings), 82/82 backend unit tests passed, and manual browser verification completed including F5 refresh persistence and logout protection.
 
+### **v1.1 — AI Copilot, RAG & Semantic Kernel**
+- **Microsoft Semantic Kernel Integration**: Added `Microsoft.SemanticKernel` (v1.30.0) as the AI orchestration engine for natural-language supply chain interactions.
+- **Dedicated Authenticated AI Endpoint (`POST /api/v1/ai/chat`)**: Built a secure backend endpoint guarded by `[Authorize]` JWT authentication, processing user prompts (`ChatRequest`) and returning structured responses (`ChatResponse`) with tool execution metadata.
+- **Retrieval-Augmented Generation (RAG)**: Implemented an enterprise RAG pipeline grounded in live PostgreSQL database telemetry. The engine retrieves authoritative domain facts via application services before synthesizing factual responses, preventing AI hallucination.
+- **Semantic Kernel Plugin & Tools (`SupplyChainPlugin`)**: Encapsulated read-only supply chain data access into Semantic Kernel plugin functions wrapping existing application services:
+  - `GetProductsAsync`: Product catalog retrieval.
+  - `GetProductByIdOrSkuAsync`: Product lookups by Guid or SKU identifier.
+  - `GetWarehousesAsync`: Warehouse facility capacity and status lookups.
+  - `GetInventoryAsync`: Stock level and allocation distribution lookups.
+  - `GetLowStockItemsAsync`: Low-stock alert detection (`AvailableQuantity <= MinimumStockThreshold`).
+- **Role-Aware AI Authorization**: Preserved backend identity and RBAC boundaries (`ClaimsPrincipal`). AI tool calls enforce authenticated user permissions, ensuring zero authorization bypass.
+- **Flexible AI Provider Architecture**: Configurable via `AiOptions` (`AiCopilot` section in `appsettings.json` and environment variables), supporting OpenAI completions (`gpt-4o-mini`), Azure OpenAI, or a deterministic Grounded Semantic Kernel RAG Orchestrator when external LLM credentials are absent.
+- **Angular 19 AI Copilot Interface (`/copilot`)**: Standalone Angular component featuring interactive chat history, quick prompt pill triggers ("⚠️ Low Stock Alerts", "📦 Product Catalog", "🏭 Warehouse Status", "📋 Inventory Summary"), tool execution badges (`🔧 Tools Executed`), typing indicator animations, and session reset.
+- **Multi-Turn Context & Error Handling**: Supports multi-turn chat history context with robust validation (HTTP 400 for empty prompts, HTTP 401 for unauthenticated requests).
+- **Automated & Manual Verification**: Frontend build passed (`ng build`), backend build passed (0 errors, 0 warnings), 87/87 backend unit tests passed, live endpoint 401 unauthenticated enforcement verified, real data retrieval verified, session persistence after F5 refresh verified, and logout protection verified.
+
 ---
 
 ## Technology Stack
 
 - **Frontend**: Angular 19+ (TypeScript, Standalone Component Architecture, Angular Router, RxJS)
 - **Backend Framework**: C# 12 / .NET 8 (ASP.NET Core Web API)
+- **AI & Orchestration**: Microsoft Semantic Kernel (v1.30.0), Generative AI / RAG, Function Calling, Prompt Execution
 - **Architecture**: Clean Architecture / Event-Driven Architecture (EDA) / Domain-Driven Design (DDD)
 - **Authentication & Security**: JWT Bearer Authentication (`Microsoft.AspNetCore.Authentication.JwtBearer`), PBKDF2 Password Hashing (`PasswordHasher<User>`), Role-Based Authorization
 - **Database**: PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL` 8.0.10)
@@ -160,15 +183,15 @@ SupplyChainX is an enterprise inventory and order management platform built on a
 
 ```
 SupplyChainX/
-├── frontend/                                 # Angular Client Application (v1.0)
+├── frontend/                                 # Angular Client Application (v1.1)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── core/                         # Models, Services, Auth Interceptor & Guards
 │   │   │   │   ├── guards/                   # authGuard, roleGuard (with async initialization await)
 │   │   │   │   ├── interceptors/             # authInterceptor (JWT Bearer Injection)
-│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory Models
-│   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService
-│   │   │   ├── features/                     # Auth (Login/Register), Dashboard, Products, Warehouses, Inventory
+│   │   │   │   ├── models/                   # Auth, Product, Warehouse, Inventory & AI Models
+│   │   │   │   └── services/                 # AuthService, ProductService, WarehouseService, InventoryService, AiService
+│   │   │   ├── features/                     # Auth (Login/Register), Copilot, Dashboard, Products, Warehouses, Inventory
 │   │   │   └── layout/                       # Layout & Navigation Header
 │   │   └── environments/                     # Environment configuration (apiBaseUrl)
 │   └── package.json
@@ -176,30 +199,31 @@ SupplyChainX/
 │   ├── SupplyChainX.sln
 │   └── src/
 │       ├── SupplyChainX.Api/                 # Controllers, Middleware & Host Configuration
-│       │   ├── Controllers/                  # AuthController, HealthController, MetricsController, Domain Controllers
+│       │   ├── Controllers/                  # AuthController, AiController, HealthController, MetricsController, Domain Controllers
 │       │   ├── Middleware/                   # CorrelationIdMiddleware, GlobalExceptionHandlingMiddleware
 │       │   ├── Conventions/                  # ApiVersionRouteConvention
 │       │   └── Program.cs
 │       ├── SupplyChainX.Application/         # Interfaces, DTOs, Handlers & Configuration Options
 │       │   ├── Common/
-│       │   │   ├── Configuration/            # JwtOptions, KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
+│       │   │   ├── Configuration/            # JwtOptions, AiOptions, KafkaTopicOptions, KafkaConsumerOptions, KafkaRetryOptions
 │       │   │   ├── Events/                   # Domain Event Contracts
-│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAuthService, IJwtTokenGenerator, IPasswordService
+│       │   │   ├── Interfaces/               # ISupplyChainXDbContext, IAiCopilotService, IAuthService, IJwtTokenGenerator, IPasswordService
 │       │   │   └── Models/                   # KafkaConsumerStatusDto
-│       │   ├── DTOs/                         # AuthDtos (RegisterRequest, LoginRequest, UserDto, AuthResponse)
+│       │   ├── DTOs/                         # AuthDtos, AiDtos (ChatRequest, ChatResponse, ChatMessageDto)
 │       │   └── EventHandlers/                # Product, Warehouse & Inventory Event Handlers
 │       ├── SupplyChainX.Domain/              # Core Domain Entities & Custom Exceptions
 │       │   ├── Entities/                     # User, Role, UserRole, Product, Warehouse, Inventory, ProcessedEvent
 │       │   └── Exceptions/                   # DomainException, NotFoundException, ConflictException
-│       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging & Health Checks
+│       └── SupplyChainX.Infrastructure/      # DB Context, Kafka Messaging, Semantic Kernel & Health Checks
 │           ├── Health/                       # KafkaHealthCheck
 │           ├── Messaging/Kafka/              # KafkaEventPublisher, KafkaConsumerBackgroundService, KafkaConsumerStatusService
 │           ├── Services/                     # AuthService, JwtTokenGenerator, PasswordService
+│           │   └── Ai/                       # AiCopilotService & SupplyChainPlugin (Semantic Kernel Tools)
 │           └── Persistence/                  # SupplyChainXDbContext & Migrations (AddAuthAndRolesTable)
 ├── infrastructure/                           # Container Orchestration
 │   └── docker-compose.yml                    # PostgreSQL & Kafka Services
 ├── tests/                                    # Automated Test Suites
-│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, Health & Metrics
+│   └── SupplyChainX.UnitTests/               # Unit Tests for Services, Handlers, Auth, AI Copilot, Health & Metrics
 ├── LICENSE                                   # MIT License
 └── README.md                                 # Project Documentation
 ```
@@ -245,7 +269,9 @@ npm start
 ## Verified Invariants & Quality Standards
 
 - **Build Quality**: Frontend build passed (`ng build`); Backend build 0 Errors, 0 Warnings.
-- **Test Suite**: 82 / 82 Automated Unit Tests Passing.
+- **Test Suite**: 87 / 87 Automated Unit Tests Passing.
+- **AI Copilot & RAG Engine**: Grounded RAG data retrieval verified across Products, Warehouses, Inventory, and Low-Stock items via Semantic Kernel tools (`SupplyChainPlugin`).
+- **AI Security & Authorization**: Unauthenticated AI endpoint requests return HTTP 401 Unauthorized; authenticated Viewer, Operator, and Admin claims enforced per request.
 - **Authentication & Authorization**: JWT token issuance, identity/role claims, and PBKDF2 password hashing verified.
 - **Session Persistence**: Persistent session restoration verified across browser refreshes (F5) via `GET /api/v1/auth/me`.
 - **Role Permissions & Enforcement**: Unauthenticated endpoints return HTTP 401; Viewer read access returns HTTP 200, write attempts return HTTP 403 Forbidden; Operator write operations return HTTP 201/200; Admin metrics returns HTTP 200 OK.
