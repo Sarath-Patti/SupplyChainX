@@ -1,9 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SupplyChainX.Api.Conventions;
 using SupplyChainX.Api.Middleware;
 using SupplyChainX.Application;
 using SupplyChainX.Infrastructure;
+using SupplyChainX.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +78,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Automatically apply EF Core database migrations on startup for containerized/Kubernetes environments
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<SupplyChainXDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Enable Routing before CORS so preflight OPTIONS requests are handled by CORS middleware without 405 Method Not Allowed
 app.UseRouting();

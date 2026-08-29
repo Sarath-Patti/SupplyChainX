@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supplychainx-config
+  namespace: supplychainx
+  labels:
+    app.kubernetes.io/part-of: supplychainx
+data:
+  ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=supplychainx_db;Username=postgres;Password=postgres_dev_password"
+  Kafka__BootstrapServers: "kafka:9092"
+  Jwt__Issuer: "SupplyChainX"
+  Jwt__Audience: "SupplyChainXApp"
+  AiCopilot__Provider: "Auto"
+  POSTGRES_DB: "supplychainx_db"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PORT: "5432"
+  KAFKA_PORT: "9092"

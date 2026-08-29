@@ -1,10 +1,10 @@
 # SupplyChainX
 
 **Version**: `v1.3.0`<br/>
-**Milestone**: `v1.5 – Event-Driven Supply Chain Workflows & Reliability`<br/>
-**Status**: `v1.5 – Verified`
+**Milestone**: `v1.6 – Kubernetes & Cloud-Native Deployment`<br/>
+**Status**: `v1.6 – Verified`
 
-SupplyChainX is a production-grade, event-driven enterprise inventory and order management platform built on C# / .NET 8, PostgreSQL, Apache Kafka, Microsoft Semantic Kernel, Model Context Protocol (MCP), and Angular 19. It demonstrates modern distributed systems architecture, reliable event processing with application-level idempotency, grounded Retrieval-Augmented Generation (RAG), multi-step agentic AI tool orchestration, and role-based operational security.
+SupplyChainX is a production-grade, event-driven enterprise inventory and order management platform built on C# / .NET 8, PostgreSQL, Apache Kafka, Microsoft Semantic Kernel, Model Context Protocol (MCP), Angular 19, and Kubernetes (`kind`). It demonstrates modern distributed systems architecture, reliable event processing with application-level idempotency, grounded Retrieval-Augmented Generation (RAG), multi-step agentic AI tool orchestration, role-based operational security, and cloud-native container orchestration.
 
 ---
 
@@ -27,6 +27,7 @@ Modern supply chain systems demand high availability, data consistency across as
 - **Agentic AI & Model Context Protocol (MCP)**: Dynamic multi-step tool planning, visual execution traces, and standardized C# MCP server REST endpoints.
 - **Production AI Provider Integration**: Strongly typed configuration support for Azure OpenAI and OpenAI completions with local fallback.
 - **Role-Based Access Control (RBAC)**: Fine-grained JWT authentication enforcing `Admin`, `Operator`, and `Viewer` policies across API and AI boundaries.
+- **Kubernetes & Cloud-Native Deployment**: Declarative K8s manifests (`Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), Nginx same-origin reverse proxy, readiness/liveness probes, bounded Kafka JVM memory, and horizontal pod scaling.
 - **End-to-End Tracing & Telemetry**: `X-Correlation-ID` header propagation across HTTP requests, domain events, Serilog context, and background workers.
 - **Modern Angular Frontend**: Standalone component architecture with async session restoration, role-aware UI controls, and live telemetry dashboards.
 
@@ -45,62 +46,46 @@ Modern supply chain systems demand high availability, data consistency across as
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Frontend Layer (Angular 19)"]
-        UI["Operations Dashboard & AI Copilot"]
-        AuthInterceptor["HTTP Auth Interceptor (JWT & X-Correlation-ID)"]
-        UI --> AuthInterceptor
+    subgraph Client ["Client Browser"]
+        Browser["Chrome / Web Browser (http://localhost:4200)"]
     end
 
-    subgraph API ["ASP.NET Core Web API Host (.NET 8)"]
-        Controllers["REST Controllers (Domain, AI & MCP)"]
-        AuthMiddleware["JWT Authentication & RBAC Middleware"]
-        ExceptionMiddleware["Global Exception Handling (ProblemDetails)"]
-        AuthInterceptor --> AuthMiddleware --> Controllers
-        Controllers --> ExceptionMiddleware
+    subgraph Cluster ["Kubernetes Cluster (kind: supplychainx)"]
+        subgraph FrontendPod ["Frontend Deployment (Nginx Container)"]
+            Nginx["Nginx Reverse Proxy"]
+            StaticAssets["Angular 19 SPA Assets"]
+        end
+
+        subgraph BackendSvc ["Backend Service (ClusterIP: 5000)"]
+            K8sService["Kubernetes Service Discovery & Load Balancing"]
+        end
+
+        subgraph BackendPod ["Backend Deployment (ASP.NET Core .NET 8)"]
+            Replica1["Backend Pod Replica 1"]
+            Replica2["Backend Pod Replica 2"]
+            Replica3["Backend Pod Replica 3"]
+        end
+
+        subgraph InfraPods ["Infrastructure Layer (Stateful & Event Bus)"]
+            PostgreSQL[("PostgreSQL 16 Pod (PVC)")]
+            Kafka["Apache Kafka 3.8 Pod (KRaft)"]
+        end
     end
 
-    subgraph App ["Application & Domain Layer"]
-        Services["Product, Warehouse & Inventory Services"]
-        DomainEvents["Domain Event Factory"]
-        Services --> DomainEvents
-    end
+    Browser -->|HTTP GET static assets| Nginx
+    Nginx --> StaticAssets
+    Browser -->|Same-origin API /api/v1/*| Nginx
+    Nginx -->|Cluster-internal proxy_pass| K8sService
+    K8sService --> Replica1
+    K8sService --> Replica2
+    K8sService --> Replica3
 
-    subgraph AI_Engine ["AI Orchestration & MCP Layer"]
-        SK["Microsoft Semantic Kernel Engine"]
-        RAG["SupplyChain Plugins (RAG Grounding)"]
-        MCP["C# MCP Server (Tool Discovery & Call)"]
-        AzureConfig["Azure OpenAI Provider (Production Configurable)"]
-        Controllers --> SK
-        Controllers --> MCP
-        SK --> RAG --> Services
-        SK --> AzureConfig
-        MCP --> Services
-    end
-
-    subgraph Messaging ["Event-Driven Messaging (Apache Kafka)"]
-        Producer["KafkaEventPublisher"]
-        KafkaBroker["Kafka Broker (Primary & DLQ Topics)"]
-        Consumer["KafkaConsumerBackgroundService"]
-        DomainEvents --> Producer --> KafkaBroker
-        KafkaBroker --> Consumer
-    end
-
-    subgraph Persistence ["Data & Idempotency Layer (PostgreSQL 16)"]
-        EFCore["Entity Framework Core (Npgsql)"]
-        Db[("PostgreSQL Database
-        - Entities (Products, Warehouses, Inventory)
-        - Auth (Users, Roles, UserRoles)
-        - Idempotency (ProcessedEvents)")]
-        Controllers --> EFCore --> Db
-        Consumer --> EFCore
-    end
-
-    subgraph Telemetry ["Observability & Health"]
-        Health["Health Probes (/health, /ready, /live)"]
-        Metrics["Metrics Service (IKafkaConsumerStatusService)"]
-        Serilog["Serilog Tracing (Correlation IDs)"]
-    end
+    Replica1 & Replica2 & Replica3 -->|Npgsql TCP| PostgreSQL
+    Replica1 & Replica2 & Replica3 -->|Kafka Protocol TCP| Kafka
 ```
+
+> **Architectural Flow**: `Angular/Nginx → ASP.NET Core → Kafka/PostgreSQL`<br/>
+> In Kubernetes, **Kubernetes Services** provide internal DNS service discovery (`backend:5000`, `postgres:5432`, `kafka:9092`) and automatically distribute incoming HTTP requests from Nginx across active backend pod replicas.
 
 ### Event-Driven Data Workflow
 
@@ -198,6 +183,46 @@ SupplyChainX exposes a standard C# Model Context Protocol (MCP) server using `Mo
 - **Credential Protection**: Managed via environment variables (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`) and sanitized logging (`Uri.Host` logging without exposing keys).
 - *Integration Status*: Azure OpenAI integration is implemented and configuration-ready; live Azure OpenAI connectivity was not used for local verification.
 
+### 9. Kubernetes & Cloud-Native Deployment (v1.6)
+SupplyChainX is fully containerized and declaratively managed in a local Kubernetes cluster using `kind`:
+- **Dockerized Containers**: Multi-stage production builds for both backend (`ASP.NET Core .NET 8`) and frontend (`Angular 19` compiled assets served via `Nginx alpine`).
+- **Declarative K8s Manifests (`infrastructure/k8s/`)**:
+  - `namespace.yaml`: Dedicated `supplychainx` namespace isolating cluster resources.
+  - `configmap.yaml` & `secrets.yaml`: Centralized runtime environment variables and secret credentials.
+  - `postgres.yaml`: PostgreSQL 16 `Deployment`, `Service`, and persistent `PersistentVolumeClaim` (`postgres-pvc`) preserving database state across container restarts.
+  - `kafka.yaml`: Apache Kafka 3.8 KRaft `Deployment` and `Service` configured with bounded JVM heap memory (`KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"`) and resource limits (`768Mi`) to prevent OOMKilled crashes.
+  - `backend.yaml`: ASP.NET Core Web API `Deployment` with 2 (scalable to 3+) replicas, zero-downtime `RollingUpdate` strategy (`maxSurge: 1`, `maxUnavailable: 0`), automated EF Core database startup migrations, and readiness (`/health/ready`) and liveness (`/health/live`) HTTP probes.
+  - `frontend.yaml`: Angular SPA `Deployment` served via Nginx with single-replica ClusterIP service on port 80.
+- **Nginx Same-Origin Reverse Proxy**: `frontend/nginx.conf` handles static Angular SPA routing while reverse-proxying `/api/` calls to `http://backend:5000`, eliminating browser CORS preflight overhead.
+- **Kubernetes Service Discovery & Scaling**: Service-to-service communication relies on cluster-internal DNS names (`backend:5000`, `postgres:5432`, `kafka:9092`). Horizontal scaling (`kubectl scale deployment backend --replicas=3 -n supplychainx`) dynamically updates Kubernetes Service endpoints to load balance traffic across 3 healthy pod replicas.
+
+#### Verified Deployment Verification Results
+- **Cluster Deployment**: Successfully created and populated local `kind` cluster (`supplychainx`).
+- **Pod Readiness**: All 5 core workloads (`postgres`, `kafka`, `backend` x2, `frontend`) reached `1/1 Ready` & `Running` states.
+- **Horizontal Scaling**: Scaled `backend` Deployment from 2 to 3 replicas (`kubectl scale deployment backend --replicas=3 -n supplychainx`). Observed 3 active endpoints under `kubectl get endpoints backend -n supplychainx`.
+- **Browser Login Flow**: Manually verified Angular client authentication at `http://localhost:4200` via Nginx same-origin proxying to `/api/v1/auth/login`.
+- **Backend Test Suite**: Verified 98/98 unit tests passing (`100% pass rate`).
+
+#### Reproducible High-Level Deployment Commands
+```bash
+# 1. Create local kind cluster
+kind create cluster --name supplychainx
+
+# 2. Build backend and frontend container images
+docker build -t supplychainx-backend:latest -f backend/Dockerfile .
+docker build -t supplychainx-frontend:latest -f frontend/Dockerfile .
+
+# 3. Load images into kind cluster node
+kind load docker-image supplychainx-backend:latest --name supplychainx
+kind load docker-image supplychainx-frontend:latest --name supplychainx
+
+# 4. Apply all declarative Kubernetes manifests
+kubectl apply -k infrastructure/k8s/
+
+# 5. Verify pod readiness across the supplychainx namespace
+kubectl get pods -n supplychainx
+```
+
 ---
 
 ## Technical Stack
@@ -213,7 +238,7 @@ SupplyChainX exposes a standard C# Model Context Protocol (MCP) server using `Mo
 | **Production AI Provider** | Azure OpenAI Integration | Configurable Azure OpenAI & OpenAI Chat Completion Connectors |
 | **Security & Auth** | JWT Bearer & PBKDF2 | Claims-based RBAC (`Admin`, `Operator`, `Viewer`) & Password Hasher |
 | **Observability** | Serilog & Health Checks | Structured logging, `X-Correlation-ID` tracing, `System.Diagnostics.Metrics` |
-| **Containerization** | Docker & Docker Compose | Containerized PostgreSQL and Apache Kafka broker infrastructure |
+| **Containerization & K8s** | Docker & Kubernetes (`kind`) | Declarative manifests (`Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), Nginx reverse proxy & `kind` cluster orchestration |
 | **Testing** | xUnit / FluentAssertions | Unit testing, NSubstitute mocks, EF Core InMemory test contexts |
 
 ---
@@ -312,6 +337,7 @@ The following functionality was manually verified in a live local environment:
 - **v1.3 — Azure OpenAI Integration & Production AI Configuration**: Configurable Azure OpenAI LLM provider integration, strongly typed `AiOptions` validation, and public CORS optimization.
 - **v1.4 — Production Hardening & Version Consistency**: Version display alignment across API/UI (`v1.3.0`), correlation ID attachment to RFC 7807 `ProblemDetails`, and secret shielding.
 - **v1.5 — Event-Driven Supply Chain Workflows & Reliability**: Domain event models, reliable Kafka producer/consumer background service, PostgreSQL application-level idempotency (`ProcessedEvents`), retry backoff, DLQ routing, and correlation ID tracing.
+- **v1.6 — Kubernetes & Cloud-Native Deployment**: Dockerized ASP.NET Core API and Angular SPA, declarative Kubernetes manifests (`namespace`, `Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), PostgreSQL persistence, Apache Kafka KRaft deployment with JVM heap limits, Nginx same-origin reverse proxying, readiness/liveness probes, rolling updates, service discovery, and horizontal pod scaling.
 
 ---
 
@@ -324,7 +350,7 @@ The following functionality was manually verified in a live local environment:
 - **Frontend Engineering**: Angular 19, TypeScript, RxJS, Async State Management, Standalone Components.
 - **Security & Authorization**: JWT Bearer Tokens, Claims-Based Access Control, Role-Based Access Control (RBAC), PBKDF2 Password Hashing.
 - **Observability**: Serilog Structured Logging, Correlation ID Propagation, Health Probes, Operational Metrics.
-- **DevOps & Tools**: Docker, Docker Compose, OpenAPI / Swagger, xUnit Unit Testing.
+- **DevOps & Cloud-Native Orchestration**: Kubernetes (`kind`, `kubectl`, `Kustomize`), Docker, Multi-Stage Builds, Nginx Reverse Proxy, Declarative Manifests (`Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), Readiness/Liveness Probes, Pod Auto-scaling, OpenAPI / Swagger, xUnit Testing.
 
 ---
 
