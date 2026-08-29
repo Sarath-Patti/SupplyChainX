@@ -118,6 +118,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IEventPublisher, KafkaEventPublisher>();
+        services.AddScoped<IKafkaBenchmarkService, KafkaBenchmarkService>();
 
         // 6. Kafka Consumer Hosted Service
         services.AddHostedService<KafkaConsumerBackgroundService>();

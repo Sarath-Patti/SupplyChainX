@@ -18,9 +18,10 @@ public class ApiVersionRouteConvention : IApplicationModelConvention
     {
         foreach (var controller in application.Controllers)
         {
-            // Skip health check and metrics system controllers which define absolute routes
+            // Skip health check, metrics, and benchmark controllers which define explicit absolute routes
             if (controller.ControllerName.Equals("Health", StringComparison.OrdinalIgnoreCase) ||
-                controller.ControllerName.Equals("Metrics", StringComparison.OrdinalIgnoreCase))
+                controller.ControllerName.Equals("Metrics", StringComparison.OrdinalIgnoreCase) ||
+                controller.ControllerName.Equals("Benchmark", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }

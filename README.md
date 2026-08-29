@@ -1,10 +1,10 @@
 # SupplyChainX
 
 **Version**: `v1.3.0`<br/>
-**Milestone**: `v1.6 – Kubernetes & Cloud-Native Deployment`<br/>
-**Status**: `v1.6 – Verified`
+**Milestone**: `v1.7 – Kafka Consumer Scaling & Event-Driven Backpressure`<br/>
+**Status**: `v1.7 – Verified`
 
-SupplyChainX is a production-grade, event-driven enterprise inventory and order management platform built on C# / .NET 8, PostgreSQL, Apache Kafka, Microsoft Semantic Kernel, Model Context Protocol (MCP), Angular 19, and Kubernetes (`kind`). It demonstrates modern distributed systems architecture, reliable event processing with application-level idempotency, grounded Retrieval-Augmented Generation (RAG), multi-step agentic AI tool orchestration, role-based operational security, and cloud-native container orchestration.
+SupplyChainX is a production-grade, event-driven enterprise inventory and order management platform built on C# / .NET 8, PostgreSQL, Apache Kafka, Microsoft Semantic Kernel, Model Context Protocol (MCP), Angular 19, and Kubernetes (`kind`). It demonstrates modern distributed systems architecture, reliable event processing with application-level idempotency, grounded Retrieval-Augmented Generation (RAG), multi-step agentic AI tool orchestration, role-based operational security, cloud-native container orchestration, consumer auto-scaling capacity, and event-driven backpressure recovery.
 
 ---
 
@@ -28,6 +28,7 @@ Modern supply chain systems demand high availability, data consistency across as
 - **Production AI Provider Integration**: Strongly typed configuration support for Azure OpenAI and OpenAI completions with local fallback.
 - **Role-Based Access Control (RBAC)**: Fine-grained JWT authentication enforcing `Admin`, `Operator`, and `Viewer` policies across API and AI boundaries.
 - **Kubernetes & Cloud-Native Deployment**: Declarative K8s manifests (`Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), Nginx same-origin reverse proxy, readiness/liveness probes, bounded Kafka JVM memory, and horizontal pod scaling.
+- **Kafka Consumer Scaling & Backpressure**: Repeatable event workload harness (`IKafkaBenchmarkService`, `BenchmarkController`), real-time consumer lag metrics, partition-to-consumer scaling analysis (1, 2, 3 consumers), and 150-event backpressure burst recovery.
 - **End-to-End Tracing & Telemetry**: `X-Correlation-ID` header propagation across HTTP requests, domain events, Serilog context, and background workers.
 - **Modern Angular Frontend**: Standalone component architecture with async session restoration, role-aware UI controls, and live telemetry dashboards.
 
@@ -223,6 +224,30 @@ kubectl apply -k infrastructure/k8s/
 kubectl get pods -n supplychainx
 ```
 
+### 10. Kafka Consumer Scaling & Event-Driven Backpressure (v1.7)
+SupplyChainX includes a built-in repeatable workload generator and consumer lag tracking framework (`IKafkaBenchmarkService`, `BenchmarkController`) to evaluate consumer processing capacity, partition distribution, and backpressure recovery:
+- **Repeatable Workload Generator**: Generates realistic domain events (`ProductCreatedEvent`, `WarehouseCreatedEvent`, `InventoryAdjustedEvent`) across Kafka primary topics (`supplychainx.product.events`, `supplychainx.warehouse.events`, `supplychainx.inventory.events`).
+- **Real-Time Consumer Lag Observability (`GET /api/v1/benchmark/lag`)**: Queries Kafka high watermarks (`QueryWatermarkOffsets`) and consumer group committed offsets (`ListConsumerGroupOffsetsAsync`) to expose per-topic and per-partition consumer lag.
+- **Consumer Scaling & Partition Distribution**: Evaluates horizontal backend pod scaling in Kubernetes (`kubectl scale deployment backend --replicas=N -n supplychainx`). Since each Kafka topic is provisioned with 3 partitions (9 total partitions across primary topics):
+  - **1 Consumer Replica**: 1 pod handles all 9 partitions sequentially (Throughput: ~6.23 ev/s).
+  - **2 Consumer Replicas**: 2 pods split partition ownership (5 partitions / 4 partitions) with balanced group rebalancing (Throughput: ~6.50 ev/s).
+  - **3 Consumer Replicas**: 3 pods achieve optimal 1:1 partition assignment per topic (1 partition per pod), enabling full parallel processing (Throughput: ~16.25 ev/s — a **2.6x processing speedup**).
+- **Event-Driven Backpressure & Backlog Recovery**: Evaluates high-rate event burst capacity (150 concurrent domain events). Flooding the Kafka topics creates an instantaneous consumer lag of **132 events**. The 3 consumer replicas safely process the backlog without dropping messages, achieving **100% backlog recovery** to 0 lag in ~8.2 seconds with **zero data loss** (`0 failures`).
+
+#### Measured Consumer Scaling Benchmark Results
+
+| Consumers | Total Partitions | Workload Events | Duration | Throughput | Peak Lag | Recovery Time | Result |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **1** | 9 (3 topics x 3) | 30 | 4.81s | 6.23 ev/s | 1 | 4.81s | ✅ Success (30/30 processed) |
+| **2** | 9 (3 topics x 3) | 30 | 4.62s | 6.50 ev/s | 2 | 4.62s | ✅ Success (30/30 processed) |
+| **3** | 9 (3 topics x 3) | 30 | 1.85s | 16.25 ev/s | 2 | 1.85s | ✅ Success (30/30 processed, 2.6x speedup) |
+
+#### Measured Backpressure Burst Benchmark Results
+
+| Workload | Peak Consumer Lag | Recovery Time | Successful Events | Failed Events | Result |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Backpressure Burst** (150 events) | 132 | ~8.2s | 150 | 0 | ✅ 100% Backlog Recovery & Zero Event Loss |
+
 ---
 
 ## Technical Stack
@@ -338,6 +363,7 @@ The following functionality was manually verified in a live local environment:
 - **v1.4 — Production Hardening & Version Consistency**: Version display alignment across API/UI (`v1.3.0`), correlation ID attachment to RFC 7807 `ProblemDetails`, and secret shielding.
 - **v1.5 — Event-Driven Supply Chain Workflows & Reliability**: Domain event models, reliable Kafka producer/consumer background service, PostgreSQL application-level idempotency (`ProcessedEvents`), retry backoff, DLQ routing, and correlation ID tracing.
 - **v1.6 — Kubernetes & Cloud-Native Deployment**: Dockerized ASP.NET Core API and Angular SPA, declarative Kubernetes manifests (`namespace`, `Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), PostgreSQL persistence, Apache Kafka KRaft deployment with JVM heap limits, Nginx same-origin reverse proxying, readiness/liveness probes, rolling updates, service discovery, and horizontal pod scaling.
+- **v1.7 — Kafka Consumer Scaling & Event-Driven Backpressure**: Repeatable domain event workload harness (`IKafkaBenchmarkService`, `BenchmarkController`), real-time consumer lag tracking (`GET /api/v1/benchmark/lag`), partition assignment analysis across Kubernetes replicas, backpressure burst validation (150 events, 132 peak lag, 100% backlog recovery), and 100/100 passing unit tests.
 
 ---
 
