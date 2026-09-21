@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.supplychainx.processservice.repository.ProcessRepositoryTests
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.323 s -- in com.supplychainx.processservice.repository.ProcessRepositoryTests

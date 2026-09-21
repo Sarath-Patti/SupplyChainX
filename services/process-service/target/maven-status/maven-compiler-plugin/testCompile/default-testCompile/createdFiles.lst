@@ -1,0 +1,3 @@
+com/supplychainx/processservice/ProcessServiceApplicationTests.class
+com/supplychainx/processservice/repository/ProcessRepositoryTests.class
+com/supplychainx/processservice/controller/ProcessControllerTests.class
