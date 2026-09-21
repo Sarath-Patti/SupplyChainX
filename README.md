@@ -1,8 +1,8 @@
 # SupplyChainX
 
 **Version**: `v1.3.0`<br/>
-**Milestone**: `v1.9 — Spring Boot Process Analytics Service (Phase 1)`<br/>
-**Status**: `v1.9 Phase 1 – Verified`
+**Milestone**: `v1.9 — Spring Boot Process Analytics Service (Phase 2)`<br/>
+**Status**: `v1.9 Phase 2 – Verified`
 
 SupplyChainX is a production-grade, event-driven enterprise inventory and order management platform built on C# / .NET 8, Java 21 / Spring Boot 3, PostgreSQL, Apache Kafka, Microsoft Semantic Kernel, Model Context Protocol (MCP), Angular 19, and Kubernetes (`kind`). It demonstrates modern polyglot distributed microservices architecture, reliable event processing with application-level idempotency, process-domain analytics, grounded Retrieval-Augmented Generation (RAG), multi-step agentic AI tool orchestration, role-based operational security, cloud-native container orchestration, consumer auto-scaling capacity, event-driven backpressure recovery, and empirically verified fault tolerance across distributed failure scenarios.
 
@@ -25,7 +25,7 @@ Modern supply chain systems demand high availability, data consistency across as
 - **Polyglot Microservice Architecture**: Java Spring Boot 3 process analytics microservice (`process-service`) working alongside ASP.NET Core API (`backend`) over shared PostgreSQL infrastructure.
 - **Application-Level Idempotency**: Deduplication using a durable PostgreSQL `ProcessedEvents` store to safely handle duplicate message delivery.
 - **Fault-Tolerant Message Handling**: Retry loops with exponential backoff, malformed message isolation, and Dead Letter Queue (DLQ) routing.
-- **Enterprise AI & RAG Orchestration**: Microsoft Semantic Kernel RAG engine grounded in live domain services to prevent AI hallucinations.
+- **Enterprise AI & RAG Orchestration**: Microsoft Semantic Kernel RAG engine grounded in live domain facts to prevent AI hallucinations.
 - **Agentic AI & Model Context Protocol (MCP)**: Dynamic multi-step tool planning, visual execution traces, and standardized C# MCP server REST endpoints.
 - **Production AI Provider Integration**: Strongly typed configuration support for Azure OpenAI and OpenAI completions with local fallback.
 - **Role-Based Access Control (RBAC)**: Fine-grained JWT authentication enforcing `Admin`, `Operator`, and `Viewer` policies across API and AI boundaries.
@@ -84,7 +84,7 @@ Modern supply chain systems demand high availability, data consistency across as
 - **v1.6 — Kubernetes & Cloud-Native Deployment**: Dockerized ASP.NET Core API and Angular SPA, declarative Kubernetes manifests (`namespace`, `Deployments`, `Services`, `ConfigMaps`, `Secrets`, `PVC`), PostgreSQL persistence, Apache Kafka KRaft deployment with JVM heap limits, Nginx same-origin reverse proxying, readiness/liveness probes, rolling updates, service discovery, and horizontal pod scaling.
 - **v1.7 — Kafka Consumer Scaling & Event-Driven Backpressure**: Repeatable domain event workload harness (`IKafkaBenchmarkService`, `BenchmarkController`), real-time consumer lag tracking (`GET /api/v1/benchmark/lag`), partition assignment analysis across Kubernetes replicas, backpressure burst validation (150 events, 132 peak lag, 100% backlog recovery), and 100/100 passing unit tests.
 - **v1.8 — Distributed Failure & Recovery Validation**: Empirically verified failure and recovery matrix across 6 real-world scenarios in Kubernetes (Kafka broker outage, consumer pod crash/rebalance, PostgreSQL database outage, duplicate event idempotency deduplication, poison event retry/DLQ routing, backend service rolling restart), 102/102 passing unit tests.
-- **v1.9 — Spring Boot Process Analytics Service (Phase 1)**: Polyglot Java 21 / Spring Boot 3 microservice (`services/process-service/`), Spring Data JPA / Hibernate persistence layer (`ProcessInstance`, `ProcessEvent`, `ProcessStep`), REST API foundation (`/api/v1/processes`), PostgreSQL environment configuration, Spring Boot Actuator health checks, and 10/10 passing unit/integration tests.
+- **v1.9 — Spring Boot Process Analytics Service**: Polyglot Java 21 / Spring Boot 3 microservice (`services/process-service/`). Phase 1 established Spring Data JPA / Hibernate persistence (`ProcessInstance`, `ProcessEvent`, `ProcessStep`), REST API foundation (`/api/v1/processes`), and Actuator health checks (10/10 tests). Phase 2 implemented Spring Kafka domain event integration (`supplychainx.product.events`, `supplychainx.warehouse.events`, `supplychainx.inventory.events`), automatic business key extraction, process lifecycle state transitions, step generation, application & database idempotency (`existsByEventId` and unique database constraint), manual offset acknowledgment (`MANUAL_IMMEDIATE`), and comprehensive unit/integration test coverage (24/24 Java tests passed, 102/102 C# tests passed).
 
 ---
 

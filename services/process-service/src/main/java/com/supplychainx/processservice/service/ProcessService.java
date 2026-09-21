@@ -8,6 +8,11 @@ import com.supplychainx.processservice.exception.ResourceNotFoundException;
 import com.supplychainx.processservice.repository.ProcessEventRepository;
 import com.supplychainx.processservice.repository.ProcessInstanceRepository;
 import com.supplychainx.processservice.repository.ProcessStepRepository;
+import com.supplychainx.processservice.kafka.KafkaEventMapper;
+import com.supplychainx.processservice.kafka.model.SupplyChainXDomainEventDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +24,22 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ProcessService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProcessService.class);
+
     private final ProcessInstanceRepository instanceRepository;
     private final ProcessEventRepository eventRepository;
     private final ProcessStepRepository stepRepository;
+    private final KafkaEventMapper kafkaEventMapper;
 
     public ProcessService(
         ProcessInstanceRepository instanceRepository,
         ProcessEventRepository eventRepository,
-        ProcessStepRepository stepRepository) {
+        ProcessStepRepository stepRepository,
+        KafkaEventMapper kafkaEventMapper) {
         this.instanceRepository = instanceRepository;
         this.eventRepository = eventRepository;
         this.stepRepository = stepRepository;
+        this.kafkaEventMapper = kafkaEventMapper;
     }
 
     public List<ProcessInstanceResponseDto> getAllProcesses() {
@@ -84,6 +94,71 @@ public class ProcessService {
 
         ProcessEvent saved = eventRepository.save(event);
         return mapToEventResponseDto(saved);
+    }
+
+    @Transactional
+    public ProcessEventResponseDto processDomainEvent(SupplyChainXDomainEventDto eventDto, String rawJson) {
+        if (eventDto.eventId() == null) {
+            throw new IllegalArgumentException("Event is missing required eventId.");
+        }
+
+        if (eventRepository.existsByEventId(eventDto.eventId())) {
+            log.info("ProcessEvent with eventId {} already processed. Skipping duplicate.", eventDto.eventId());
+            return eventRepository.findByEventId(eventDto.eventId())
+                .map(this::mapToEventResponseDto)
+                .orElse(null);
+        }
+
+        String businessKey = kafkaEventMapper.extractBusinessKey(eventDto)
+            .orElseThrow(() -> new IllegalArgumentException("Event is missing a valid business identifier (productId, warehouseId, or inventoryId)."));
+
+        String processType = kafkaEventMapper.determineProcessType(eventDto);
+        Instant eventTimestamp = eventDto.occurredOnUtc() != null ? eventDto.occurredOnUtc() : Instant.now();
+
+        ProcessInstance instance = instanceRepository.findByBusinessKey(businessKey)
+            .orElseGet(() -> {
+                ProcessInstance newInstance = new ProcessInstance(
+                    businessKey,
+                    processType,
+                    "ACTIVE",
+                    eventTimestamp
+                );
+                return instanceRepository.save(newInstance);
+            });
+
+        if (kafkaEventMapper.isTerminalEvent(eventDto)) {
+            instance.setStatus("COMPLETED");
+            instance.setCompletedAt(eventTimestamp);
+        }
+
+        ProcessEvent event = new ProcessEvent(
+            eventDto.eventId(),
+            eventDto.eventType() != null ? eventDto.eventType() : "UNKNOWN_EVENT",
+            eventTimestamp,
+            rawJson
+        );
+        instance.addEvent(event);
+
+        kafkaEventMapper.determineStepName(eventDto).ifPresent(stepName -> {
+            ProcessStep step = new ProcessStep(
+                stepName,
+                "COMPLETED",
+                eventTimestamp,
+                eventTimestamp
+            );
+            instance.addStep(step);
+        });
+
+        try {
+            ProcessEvent saved = eventRepository.save(event);
+            instanceRepository.save(instance);
+            return mapToEventResponseDto(saved);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate ProcessEvent detected via database unique constraint for eventId: {}", eventDto.eventId());
+            return eventRepository.findByEventId(eventDto.eventId())
+                .map(this::mapToEventResponseDto)
+                .orElse(null);
+        }
     }
 
     private ProcessInstanceResponseDto mapToResponseDto(ProcessInstance instance) {

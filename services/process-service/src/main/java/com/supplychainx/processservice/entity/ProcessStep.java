@@ -41,9 +41,14 @@ public class ProcessStep {
     }
 
     public ProcessStep(String stepName, String status, Instant startedAt) {
+        this(stepName, status, startedAt, null);
+    }
+
+    public ProcessStep(String stepName, String status, Instant startedAt, Instant completedAt) {
         this.stepName = stepName;
         this.status = status;
         this.startedAt = startedAt != null ? startedAt : Instant.now();
+        this.completedAt = completedAt;
         this.createdAt = Instant.now();
     }
 

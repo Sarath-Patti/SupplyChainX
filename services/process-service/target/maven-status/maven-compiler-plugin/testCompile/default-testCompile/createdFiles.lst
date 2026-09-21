@@ -1,3 +1,6 @@
+com/supplychainx/processservice/service/ProcessServiceTests.class
 com/supplychainx/processservice/ProcessServiceApplicationTests.class
 com/supplychainx/processservice/repository/ProcessRepositoryTests.class
+com/supplychainx/processservice/kafka/ProcessEventConsumerTests.class
+com/supplychainx/processservice/kafka/KafkaEventMapperTests.class
 com/supplychainx/processservice/controller/ProcessControllerTests.class
