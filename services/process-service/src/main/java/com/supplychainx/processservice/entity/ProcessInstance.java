@@ -13,7 +13,10 @@ import java.util.UUID;
     indexes = {
         @Index(name = "idx_process_instance_business_key", columnList = "business_key", unique = true),
         @Index(name = "idx_process_instance_status", columnList = "status"),
-        @Index(name = "idx_process_instance_process_type", columnList = "process_type")
+        @Index(name = "idx_process_instance_process_type", columnList = "process_type"),
+        @Index(name = "idx_process_instance_started_at", columnList = "started_at"),
+        @Index(name = "idx_process_instance_completed_at", columnList = "completed_at"),
+        @Index(name = "idx_process_instance_type_started", columnList = "process_type, started_at")
     }
 )
 public class ProcessInstance {

@@ -1,4 +1,6 @@
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/ProcessServiceApplicationTests.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/analytics/ProcessAnalyticsControllerTests.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/analytics/ProcessAnalyticsServiceTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/controller/ProcessControllerTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/kafka/KafkaEventMapperTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/kafka/ProcessEventConsumerTests.java

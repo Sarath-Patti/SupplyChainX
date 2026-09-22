@@ -9,7 +9,9 @@ import java.util.UUID;
 @Table(
     name = "process_steps",
     indexes = {
-        @Index(name = "idx_process_step_instance", columnList = "process_instance_id")
+        @Index(name = "idx_process_step_instance", columnList = "process_instance_id"),
+        @Index(name = "idx_process_step_name", columnList = "step_name"),
+        @Index(name = "idx_process_step_completed_at", columnList = "completed_at")
     }
 )
 public class ProcessStep {

@@ -140,6 +140,14 @@ public class ProcessService {
         instance.addEvent(event);
 
         kafkaEventMapper.determineStepName(eventDto).ifPresent(stepName -> {
+            List<ProcessStep> existingSteps = instance.getSteps();
+            if (!existingSteps.isEmpty()) {
+                ProcessStep lastStep = existingSteps.get(existingSteps.size() - 1);
+                if (lastStep.getCompletedAt() == null || lastStep.getCompletedAt().equals(lastStep.getStartedAt())) {
+                    lastStep.setCompletedAt(eventTimestamp);
+                }
+            }
+
             ProcessStep step = new ProcessStep(
                 stepName,
                 "COMPLETED",
