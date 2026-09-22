@@ -271,6 +271,96 @@ public class ProcessAnalyticsService {
             .toList();
     }
 
+    public List<ProcessVariantResponse> getVariantAnalysis(String processType, Instant from, Instant to) {
+        List<ProcessInstance> instances = analyticsRepository.findInstancesForAnalytics(processType, from, to);
+
+        if (instances.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, List<ProcessInstance>> variantGroups = new LinkedHashMap<>();
+        Map<String, List<String>> sequencesByKey = new HashMap<>();
+
+        for (ProcessInstance instance : instances) {
+            List<ProcessStep> sortedSteps = instance.getSteps().stream()
+                .sorted(Comparator.comparing(ProcessStep::getStartedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+            List<String> sequence = sortedSteps.stream()
+                .map(ProcessStep::getStepName)
+                .toList();
+
+            if (sequence.isEmpty()) {
+                sequence = List.of("UNKNOWN_STAGE");
+            }
+
+            String variantKey = String.join(">", sequence);
+            variantGroups.computeIfAbsent(variantKey, k -> new ArrayList<>()).add(instance);
+            sequencesByKey.putIfAbsent(variantKey, sequence);
+        }
+
+        long totalCompletedProcesses = instances.stream()
+            .filter(p -> "COMPLETED".equalsIgnoreCase(p.getStatus()))
+            .count();
+
+        List<ProcessVariantResponse> variantResponses = new ArrayList<>();
+
+        for (Map.Entry<String, List<ProcessInstance>> entry : variantGroups.entrySet()) {
+            String variantKey = entry.getKey();
+            List<ProcessInstance> groupInstances = entry.getValue();
+            List<String> sequence = sequencesByKey.get(variantKey);
+
+            long occurrenceCount = groupInstances.size();
+
+            List<ProcessInstance> completedInGroup = groupInstances.stream()
+                .filter(p -> "COMPLETED".equalsIgnoreCase(p.getStatus()) && p.getStartedAt() != null && p.getCompletedAt() != null)
+                .toList();
+
+            long completedCount = completedInGroup.size();
+
+            List<Long> cycleTimes = completedInGroup.stream()
+                .map(p -> Math.max(0L, Duration.between(p.getStartedAt(), p.getCompletedAt()).toMillis()))
+                .toList();
+
+            Double avgCycleTimeMs = cycleTimes.isEmpty() ? null : cycleTimes.stream().mapToLong(Long::longValue).average().orElse(0.0);
+            Long minCycleTimeMs = cycleTimes.isEmpty() ? null : cycleTimes.stream().mapToLong(Long::longValue).min().orElse(0L);
+            Long maxCycleTimeMs = cycleTimes.isEmpty() ? null : cycleTimes.stream().mapToLong(Long::longValue).max().orElse(0L);
+            Long totalCycleTimeMs = cycleTimes.isEmpty() ? null : cycleTimes.stream().mapToLong(Long::longValue).sum();
+
+            double percentage = totalCompletedProcesses > 0
+                ? Math.round(((double) completedCount / totalCompletedProcesses) * 10000.0) / 100.0
+                : 0.0;
+
+            String instanceType = processType != null ? processType : groupInstances.get(0).getProcessType();
+
+            variantResponses.add(new ProcessVariantResponse(
+                variantKey,
+                instanceType,
+                sequence,
+                occurrenceCount,
+                percentage,
+                completedCount,
+                avgCycleTimeMs != null ? Math.round(avgCycleTimeMs * 100.0) / 100.0 : null,
+                minCycleTimeMs,
+                maxCycleTimeMs,
+                totalCycleTimeMs
+            ));
+        }
+
+        return variantResponses.stream()
+            .sorted(Comparator.comparing(ProcessVariantResponse::occurrenceCount).reversed()
+                .thenComparing(ProcessVariantResponse::completedCount, Comparator.reverseOrder()))
+            .toList();
+    }
+
+    public ProcessVariantResponse getVariantByKey(String variantKey, String processType, Instant from, Instant to) {
+        String decodedKey = java.net.URLDecoder.decode(variantKey, java.nio.charset.StandardCharsets.UTF_8);
+        return getVariantAnalysis(processType, from, to).stream()
+            .filter(v -> v.variantKey().equalsIgnoreCase(variantKey) || v.variantKey().equalsIgnoreCase(decodedKey))
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Process variant not found with key: " + variantKey));
+    }
+
     private Instant resolveEffectiveCompletedAt(ProcessStep step, int index, List<ProcessStep> sortedSteps, ProcessInstance instance) {
         Instant startedAt = step.getStartedAt();
         Instant completedAt = step.getCompletedAt();

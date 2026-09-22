@@ -27,4 +27,5 @@ com/supplychainx/processservice/dto/ProcessStepResponseDto.class
 com/supplychainx/processservice/entity/ProcessEvent.class
 com/supplychainx/processservice/repository/ProcessStepRepository.class
 com/supplychainx/processservice/exception/GlobalExceptionHandler.class
+com/supplychainx/processservice/analytics/dto/ProcessVariantResponse.class
 com/supplychainx/processservice/analytics/ProcessAnalyticsService.class

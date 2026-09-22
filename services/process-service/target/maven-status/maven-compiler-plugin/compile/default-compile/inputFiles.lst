@@ -5,6 +5,7 @@
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/BottleneckResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessAnalyticsSummaryResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessMetricsResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessVariantResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/StageDurationStats.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/StageMetricsResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ThroughputResponse.java

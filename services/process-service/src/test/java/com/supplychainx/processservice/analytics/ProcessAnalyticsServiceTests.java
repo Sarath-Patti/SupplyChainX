@@ -228,4 +228,73 @@ class ProcessAnalyticsServiceTests {
         assertEquals(20000.0, bottlenecks.get(1).averageDurationMs());
         assertEquals(0.2000, bottlenecks.get(1).processTimeContribution(), 0.001);
     }
+
+    @Test
+    void shouldIdentifyDistinctVariantsAndRepeatedActivities() {
+        Instant t1 = Instant.now().minusSeconds(500);
+
+        // Variant A: CREATE -> UPDATE -> DELETE (Completed, 100s)
+        ProcessInstance p1 = new ProcessInstance("BIZ-VAR-1", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p1.setCompletedAt(t1.plusSeconds(100));
+        p1.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p1.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(40), t1.plusSeconds(40)));
+        p1.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+
+        // Variant B: CREATE -> UPDATE -> UPDATE -> DELETE (Completed, 200s) - Repeated activity!
+        ProcessInstance p2 = new ProcessInstance("BIZ-VAR-2", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p2.setCompletedAt(t1.plusSeconds(200));
+        p2.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p2.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p2.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(120), t1.plusSeconds(120)));
+        p2.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+
+        // Variant A Instance 2: CREATE -> UPDATE -> DELETE (Completed, 60s)
+        ProcessInstance p3 = new ProcessInstance("BIZ-VAR-3", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p3.setCompletedAt(t1.plusSeconds(60));
+        p3.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(20), t1.plusSeconds(20)));
+        p3.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(60), t1.plusSeconds(60)));
+
+        instanceRepository.saveAll(List.of(p1, p2, p3));
+
+        List<ProcessVariantResponse> variants = analyticsService.getVariantAnalysis("PRODUCT_LIFECYCLE", null, null);
+
+        assertEquals(2, variants.size());
+
+        // Variant A should have 2 occurrences (66.67%), avg cycle time = (100s + 60s)/2 = 80s (80000ms)
+        ProcessVariantResponse varA = variants.get(0);
+        assertEquals("PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_DELETION", varA.variantKey());
+        assertEquals(2, varA.occurrenceCount());
+        assertEquals(2, varA.completedCount());
+        assertEquals(66.67, varA.percentage());
+        assertEquals(80000.0, varA.averageCycleTimeMs());
+        assertEquals(60000L, varA.minCycleTimeMs());
+        assertEquals(100000L, varA.maxCycleTimeMs());
+
+        // Variant B should have 1 occurrence (33.33%), avg cycle time = 200s (200000ms)
+        ProcessVariantResponse varB = variants.get(1);
+        assertEquals("PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_UPDATE>PRODUCT_DELETION", varB.variantKey());
+        assertEquals(1, varB.occurrenceCount());
+        assertEquals(1, varB.completedCount());
+        assertEquals(33.33, varB.percentage());
+        assertEquals(200000.0, varB.averageCycleTimeMs());
+    }
+
+    @Test
+    void shouldGetVariantByKeyAndThrowNotFoundForUnknown() {
+        Instant t1 = Instant.now().minusSeconds(100);
+        ProcessInstance p1 = new ProcessInstance("BIZ-VAR-KEY", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p1.setCompletedAt(t1.plusSeconds(50));
+        p1.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p1.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        instanceRepository.save(p1);
+
+        ProcessVariantResponse found = analyticsService.getVariantByKey("PRODUCT_CREATION>PRODUCT_DELETION", "PRODUCT_LIFECYCLE", null, null);
+        assertNotNull(found);
+        assertEquals("PRODUCT_CREATION>PRODUCT_DELETION", found.variantKey());
+
+        assertThrows(ResourceNotFoundException.class, () ->
+            analyticsService.getVariantByKey("UNKNOWN>KEY", "PRODUCT_LIFECYCLE", null, null)
+        );
+    }
 }

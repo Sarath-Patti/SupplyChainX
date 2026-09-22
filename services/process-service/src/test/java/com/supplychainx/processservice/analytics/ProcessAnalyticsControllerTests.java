@@ -165,4 +165,60 @@ class ProcessAnalyticsControllerTests {
             .andExpect(jsonPath("$[0].averageDurationMs").value(850.0))
             .andExpect(jsonPath("$[0].processTimeContribution").value(0.65));
     }
+
+    @Test
+    void shouldReturnVariants() throws Exception {
+        ProcessVariantResponse variant = new ProcessVariantResponse(
+            "PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_DELETION",
+            "PRODUCT_LIFECYCLE",
+            List.of("PRODUCT_CREATION", "PRODUCT_UPDATE", "PRODUCT_DELETION"),
+            10,
+            66.67,
+            10,
+            5200.0,
+            4100L,
+            8400L,
+            52000L
+        );
+
+        when(analyticsService.getVariantAnalysis(eq("PRODUCT_LIFECYCLE"), any(), any())).thenReturn(List.of(variant));
+
+        mockMvc.perform(get("/api/v1/analytics/variants")
+                .param("processType", "PRODUCT_LIFECYCLE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].variantKey").value("PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_DELETION"))
+            .andExpect(jsonPath("$[0].occurrenceCount").value(10))
+            .andExpect(jsonPath("$[0].percentage").value(66.67))
+            .andExpect(jsonPath("$[0].averageCycleTimeMs").value(5200.0));
+    }
+
+    @Test
+    void shouldReturnVariantByKeyOr404() throws Exception {
+        String key = "PRODUCT_CREATION>PRODUCT_DELETION";
+        ProcessVariantResponse variant = new ProcessVariantResponse(
+            key,
+            "PRODUCT_LIFECYCLE",
+            List.of("PRODUCT_CREATION", "PRODUCT_DELETION"),
+            5,
+            33.33,
+            5,
+            3000.0,
+            2000L,
+            4000L,
+            15000L
+        );
+
+        when(analyticsService.getVariantByKey(eq(key), any(), any(), any())).thenReturn(variant);
+
+        mockMvc.perform(get("/api/v1/analytics/variants/{variantKey}", key))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.variantKey").value(key))
+            .andExpect(jsonPath("$.occurrenceCount").value(5));
+
+        when(analyticsService.getVariantByKey(eq("UNKNOWN"), any(), any(), any()))
+            .thenThrow(new ResourceNotFoundException("Process variant not found with key: UNKNOWN"));
+
+        mockMvc.perform(get("/api/v1/analytics/variants/{variantKey}", "UNKNOWN"))
+            .andExpect(status().isNotFound());
+    }
 }

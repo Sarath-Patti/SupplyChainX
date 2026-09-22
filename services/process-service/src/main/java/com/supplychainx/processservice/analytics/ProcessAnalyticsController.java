@@ -60,4 +60,25 @@ public class ProcessAnalyticsController {
         List<BottleneckResponse> bottlenecks = analyticsService.getBottleneckAnalysis(processType, from, to);
         return ResponseEntity.ok(bottlenecks);
     }
+
+    @GetMapping("/variants")
+    public ResponseEntity<List<ProcessVariantResponse>> getVariants(
+        @RequestParam(required = false) String processType,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+
+        List<ProcessVariantResponse> variants = analyticsService.getVariantAnalysis(processType, from, to);
+        return ResponseEntity.ok(variants);
+    }
+
+    @GetMapping("/variants/{variantKey:.+}")
+    public ResponseEntity<ProcessVariantResponse> getVariantByKey(
+        @PathVariable String variantKey,
+        @RequestParam(required = false) String processType,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+
+        ProcessVariantResponse variant = analyticsService.getVariantByKey(variantKey, processType, from, to);
+        return ResponseEntity.ok(variant);
+    }
 }
