@@ -555,6 +555,242 @@ public class ProcessAnalyticsService {
         );
     }
 
+    public List<String> getExpectedSequence(String processType) {
+        if (processType == null) {
+            return List.of("PRODUCT_CREATION", "PRODUCT_UPDATE", "PRODUCT_DELETION");
+        }
+        return switch (processType.toUpperCase()) {
+            case "WAREHOUSE_LIFECYCLE" -> List.of("WAREHOUSE_CREATION", "WAREHOUSE_UPDATE", "WAREHOUSE_DELETION");
+            case "INVENTORY_MANAGEMENT" -> List.of("INVENTORY_ADJUSTMENT");
+            default -> List.of("PRODUCT_CREATION", "PRODUCT_UPDATE", "PRODUCT_DELETION");
+        };
+    }
+
+    public ProcessConformanceResponse getProcessConformanceDetail(UUID processInstanceId) {
+        ProcessInstance instance = instanceRepository.findById(processInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("ProcessInstance not found with ID: " + processInstanceId));
+
+        return evaluateConformance(instance);
+    }
+
+    public ConformanceAnalyticsSummaryResponse getConformanceAnalyticsSummary(String processType, Instant from, Instant to) {
+        List<ProcessInstance> completedInstances = analyticsRepository.findCompletedInstancesForAnalytics(processType, from, to);
+
+        long totalProcesses = completedInstances.size();
+        if (totalProcesses == 0) {
+            Map<String, Long> emptyTypeCounts = new LinkedHashMap<>();
+            emptyTypeCounts.put("MISSING_ACTIVITY", 0L);
+            emptyTypeCounts.put("UNEXPECTED_ACTIVITY", 0L);
+            emptyTypeCounts.put("ORDER_VIOLATION", 0L);
+            emptyTypeCounts.put("TERMINAL_ACTIVITY_VIOLATION", 0L);
+
+            return new ConformanceAnalyticsSummaryResponse(
+                processType != null ? processType : "ALL_TYPES",
+                0L,
+                0L,
+                0L,
+                0.0,
+                0.0,
+                0L,
+                emptyTypeCounts,
+                from,
+                to
+            );
+        }
+
+        long conformantCount = 0;
+        long deviatedCount = 0;
+        double totalScoreSum = 0.0;
+        long totalDeviationCount = 0;
+
+        Map<String, Long> deviationCountsByType = new LinkedHashMap<>();
+        deviationCountsByType.put("MISSING_ACTIVITY", 0L);
+        deviationCountsByType.put("UNEXPECTED_ACTIVITY", 0L);
+        deviationCountsByType.put("ORDER_VIOLATION", 0L);
+        deviationCountsByType.put("TERMINAL_ACTIVITY_VIOLATION", 0L);
+
+        for (ProcessInstance instance : completedInstances) {
+            ProcessConformanceResponse detail = evaluateConformance(instance);
+            totalScoreSum += detail.conformanceScore();
+            totalDeviationCount += detail.deviationCount();
+
+            if ("CONFORMANT".equalsIgnoreCase(detail.status())) {
+                conformantCount++;
+            } else {
+                deviatedCount++;
+            }
+
+            for (ProcessDeviationDto dev : detail.deviations()) {
+                String type = dev.deviationType();
+                deviationCountsByType.put(type, deviationCountsByType.getOrDefault(type, 0L) + 1L);
+            }
+        }
+
+        double conformanceRate = Math.round(((double) conformantCount / totalProcesses * 100.0) * 100.0) / 100.0;
+        double avgScore = Math.round((totalScoreSum / totalProcesses) * 100.0) / 100.0;
+
+        return new ConformanceAnalyticsSummaryResponse(
+            processType != null ? processType : "ALL_TYPES",
+            totalProcesses,
+            conformantCount,
+            deviatedCount,
+            conformanceRate,
+            avgScore,
+            totalDeviationCount,
+            deviationCountsByType,
+            from,
+            to
+        );
+    }
+
+    private ProcessConformanceResponse evaluateConformance(ProcessInstance instance) {
+        List<String> actualSequence = extractActivitySequence(instance);
+        List<String> expectedSequence = getExpectedSequence(instance.getProcessType());
+
+        List<ProcessDeviationDto> deviations = new ArrayList<>();
+        List<String> missingActivities = new ArrayList<>();
+        List<String> unexpectedActivities = new ArrayList<>();
+        List<String> orderViolations = new ArrayList<>();
+
+        String terminalActivity = expectedSequence.isEmpty() ? null : expectedSequence.get(expectedSequence.size() - 1);
+        int firstTerminalPos = -1;
+        if (terminalActivity != null) {
+            for (int i = 0; i < actualSequence.size(); i++) {
+                if (terminalActivity.equals(actualSequence.get(i))) {
+                    firstTerminalPos = i + 1; // 1-indexed
+                    break;
+                }
+            }
+        }
+
+        // 1. Check for Terminal Activity Violations (activities occurring after terminal activity)
+        if (firstTerminalPos != -1) {
+            for (int i = firstTerminalPos; i < actualSequence.size(); i++) {
+                String actName = actualSequence.get(i);
+                int actualPos = i + 1;
+                deviations.add(new ProcessDeviationDto(
+                    "TERMINAL_ACTIVITY_VIOLATION",
+                    actName,
+                    null,
+                    actualPos,
+                    "Activity '" + actName + "' occurred at position " + actualPos + " after terminal activity '" + terminalActivity + "' at position " + firstTerminalPos
+                ));
+            }
+        }
+
+        int endLimit = firstTerminalPos != -1 ? firstTerminalPos : actualSequence.size();
+
+        // Evaluate positions across full actualSequence
+        Map<String, List<Integer>> positionsByActivity = new HashMap<>();
+        for (int i = 0; i < actualSequence.size(); i++) {
+            String act = actualSequence.get(i);
+            positionsByActivity.computeIfAbsent(act, k -> new ArrayList<>()).add(i + 1);
+        }
+
+        // 2. Check MISSING_ACTIVITY
+        Set<String> matchedExpectedSet = new HashSet<>();
+        for (int i = 0; i < expectedSequence.size(); i++) {
+            String expAct = expectedSequence.get(i);
+            int expPos = i + 1;
+            List<Integer> actualPositions = positionsByActivity.get(expAct);
+
+            if (actualPositions == null || actualPositions.isEmpty()) {
+                deviations.add(new ProcessDeviationDto(
+                    "MISSING_ACTIVITY",
+                    expAct,
+                    expPos,
+                    null,
+                    "Expected activity '" + expAct + "' at position " + expPos + " was not executed"
+                ));
+                missingActivities.add(expAct);
+            } else {
+                matchedExpectedSet.add(expAct);
+            }
+        }
+
+        // 3. Check ORDER_VIOLATION (pre-terminal)
+        for (int i = 0; i < expectedSequence.size(); i++) {
+            String expEarly = expectedSequence.get(i);
+            List<Integer> posEarly = positionsByActivity.get(expEarly);
+            if (posEarly == null || posEarly.isEmpty()) continue;
+
+            for (int j = i + 1; j < expectedSequence.size(); j++) {
+                String expLater = expectedSequence.get(j);
+                List<Integer> posLater = positionsByActivity.get(expLater);
+                if (posLater == null || posLater.isEmpty()) continue;
+
+                int firstEarly = posEarly.get(0);
+                int firstLater = posLater.get(0);
+
+                if (firstLater < firstEarly) {
+                    if (!orderViolations.contains(expEarly)) {
+                        deviations.add(new ProcessDeviationDto(
+                            "ORDER_VIOLATION",
+                            expEarly,
+                            i + 1,
+                            firstEarly,
+                            "Activity '" + expEarly + "' (expected position " + (i + 1) + ") occurred at position " + firstEarly + " after '" + expLater + "' (position " + firstLater + ")"
+                        ));
+                        orderViolations.add(expEarly);
+                    }
+                }
+            }
+        }
+
+        // 4. Check UNEXPECTED_ACTIVITY (pre-terminal extra repetitions or unknown activities)
+        for (int i = 0; i < endLimit; i++) {
+            String act = actualSequence.get(i);
+            int actualPos = i + 1;
+
+            if (!expectedSequence.contains(act)) {
+                deviations.add(new ProcessDeviationDto(
+                    "UNEXPECTED_ACTIVITY",
+                    act,
+                    null,
+                    actualPos,
+                    "Activity '" + act + "' at position " + actualPos + " is not in expected path"
+                ));
+                if (!unexpectedActivities.contains(act)) {
+                    unexpectedActivities.add(act);
+                }
+            } else {
+                List<Integer> posList = positionsByActivity.get(act);
+                if (posList.size() > 1 && posList.indexOf(actualPos) > 0) {
+                    int expectedPos = expectedSequence.indexOf(act) + 1;
+                    deviations.add(new ProcessDeviationDto(
+                        "UNEXPECTED_ACTIVITY",
+                        act,
+                        expectedPos,
+                        actualPos,
+                        "Unexpected repetition of activity '" + act + "' at position " + actualPos
+                    ));
+                    if (!unexpectedActivities.contains(act)) {
+                        unexpectedActivities.add(act);
+                    }
+                }
+            }
+        }
+
+        double rawScore = expectedSequence.isEmpty() ? 1.0 : (double) matchedExpectedSet.size() / expectedSequence.size();
+        double conformanceScore = Math.min(1.0, Math.round(rawScore * 100.0) / 100.0);
+
+        String status = deviations.isEmpty() ? "CONFORMANT" : "DEVIATED";
+
+        return new ProcessConformanceResponse(
+            instance.getId(),
+            instance.getProcessType(),
+            expectedSequence,
+            actualSequence,
+            status,
+            conformanceScore,
+            deviations.size(),
+            deviations,
+            missingActivities,
+            unexpectedActivities,
+            orderViolations
+        );
+    }
+
     private List<String> extractActivitySequence(ProcessInstance instance) {
         List<ProcessStep> sortedSteps = instance.getSteps().stream()
             .sorted(Comparator.comparing(ProcessStep::getStartedAt, Comparator.nullsLast(Comparator.naturalOrder())))

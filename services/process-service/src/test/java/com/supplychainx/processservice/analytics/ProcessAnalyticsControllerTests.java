@@ -298,4 +298,70 @@ class ProcessAnalyticsControllerTests {
         mockMvc.perform(get("/api/v1/analytics/rework/{processId}", unknownId))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void shouldReturnConformanceSummary() throws Exception {
+        ConformanceAnalyticsSummaryResponse summary = new ConformanceAnalyticsSummaryResponse(
+            "PRODUCT_LIFECYCLE",
+            10,
+            8,
+            2,
+            80.0,
+            0.95,
+            3,
+            java.util.Map.of(
+                "MISSING_ACTIVITY", 1L,
+                "UNEXPECTED_ACTIVITY", 1L,
+                "ORDER_VIOLATION", 1L,
+                "TERMINAL_ACTIVITY_VIOLATION", 0L
+            ),
+            null,
+            null
+        );
+
+        when(analyticsService.getConformanceAnalyticsSummary(eq("PRODUCT_LIFECYCLE"), any(), any())).thenReturn(summary);
+
+        mockMvc.perform(get("/api/v1/analytics/conformance")
+                .param("processType", "PRODUCT_LIFECYCLE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.processType").value("PRODUCT_LIFECYCLE"))
+            .andExpect(jsonPath("$.totalProcessesAnalyzed").value(10))
+            .andExpect(jsonPath("$.conformantProcessCount").value(8))
+            .andExpect(jsonPath("$.conformanceRate").value(80.0))
+            .andExpect(jsonPath("$.averageConformanceScore").value(0.95));
+    }
+
+    @Test
+    void shouldReturnProcessConformanceDetailOr404() throws Exception {
+        UUID processId = UUID.randomUUID();
+        ProcessConformanceResponse detail = new ProcessConformanceResponse(
+            processId,
+            "PRODUCT_LIFECYCLE",
+            List.of("PRODUCT_CREATION", "PRODUCT_UPDATE", "PRODUCT_DELETION"),
+            List.of("PRODUCT_CREATION", "PRODUCT_DELETION"),
+            "DEVIATED",
+            0.67,
+            1,
+            List.of(new ProcessDeviationDto("MISSING_ACTIVITY", "PRODUCT_UPDATE", 2, null, "Missing UPDATE")),
+            List.of("PRODUCT_UPDATE"),
+            List.of(),
+            List.of()
+        );
+
+        when(analyticsService.getProcessConformanceDetail(processId)).thenReturn(detail);
+
+        mockMvc.perform(get("/api/v1/analytics/conformance/{processId}", processId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.processInstanceId").value(processId.toString()))
+            .andExpect(jsonPath("$.status").value("DEVIATED"))
+            .andExpect(jsonPath("$.conformanceScore").value(0.67))
+            .andExpect(jsonPath("$.deviations[0].deviationType").value("MISSING_ACTIVITY"));
+
+        UUID unknownId = UUID.randomUUID();
+        when(analyticsService.getProcessConformanceDetail(unknownId))
+            .thenThrow(new ResourceNotFoundException("ProcessInstance not found with ID: " + unknownId));
+
+        mockMvc.perform(get("/api/v1/analytics/conformance/{processId}", unknownId))
+            .andExpect(status().isNotFound());
+    }
 }

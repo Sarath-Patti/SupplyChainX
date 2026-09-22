@@ -11,6 +11,7 @@ com/supplychainx/processservice/kafka/KafkaConsumerConfig.class
 com/supplychainx/processservice/service/ProcessService.class
 com/supplychainx/processservice/dto/ProcessInstanceResponseDto.class
 com/supplychainx/processservice/dto/ProcessInstanceDetailResponseDto.class
+com/supplychainx/processservice/analytics/dto/ProcessDeviationDto.class
 com/supplychainx/processservice/kafka/ProcessEventConsumer.class
 com/supplychainx/processservice/dto/ProcessEventResponseDto.class
 com/supplychainx/processservice/repository/ProcessEventRepository.class
@@ -19,10 +20,12 @@ com/supplychainx/processservice/ProcessServiceApplication.class
 com/supplychainx/processservice/analytics/ProcessAnalyticsRepository.class
 com/supplychainx/processservice/kafka/model/SupplyChainXDomainEventDto.class
 com/supplychainx/processservice/analytics/dto/ProcessAnalyticsSummaryResponse.class
+com/supplychainx/processservice/analytics/dto/ProcessConformanceResponse.class
 com/supplychainx/processservice/entity/ProcessInstance.class
 com/supplychainx/processservice/analytics/dto/StageMetricsResponse.class
 com/supplychainx/processservice/kafka/KafkaEventMapper.class
 com/supplychainx/processservice/dto/ErrorResponseDto.class
+com/supplychainx/processservice/analytics/dto/ConformanceAnalyticsSummaryResponse.class
 com/supplychainx/processservice/analytics/dto/ProcessReworkDetailResponse.class
 com/supplychainx/processservice/dto/CreateProcessInstanceRequestDto.class
 com/supplychainx/processservice/dto/ProcessStepResponseDto.class

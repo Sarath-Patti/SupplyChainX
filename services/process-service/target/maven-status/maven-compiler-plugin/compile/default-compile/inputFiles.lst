@@ -4,7 +4,10 @@
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/ProcessAnalyticsService.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ActivityReworkResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/BottleneckResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ConformanceAnalyticsSummaryResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessAnalyticsSummaryResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessConformanceResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessDeviationDto.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessMetricsResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessReworkDetailResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessVariantResponse.java

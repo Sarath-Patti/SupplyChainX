@@ -97,4 +97,20 @@ public class ProcessAnalyticsController {
         ProcessReworkDetailResponse reworkDetail = analyticsService.getProcessReworkDetail(processId);
         return ResponseEntity.ok(reworkDetail);
     }
+
+    @GetMapping("/conformance")
+    public ResponseEntity<ConformanceAnalyticsSummaryResponse> getConformanceAnalytics(
+        @RequestParam(required = false) String processType,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+
+        ConformanceAnalyticsSummaryResponse summary = analyticsService.getConformanceAnalyticsSummary(processType, from, to);
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/conformance/{processId}")
+    public ResponseEntity<ProcessConformanceResponse> getProcessConformanceDetail(@PathVariable UUID processId) {
+        ProcessConformanceResponse response = analyticsService.getProcessConformanceDetail(processId);
+        return ResponseEntity.ok(response);
+    }
 }

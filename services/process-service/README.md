@@ -1,17 +1,17 @@
 # SupplyChainX — Process Analytics Service (`process-service`)
 
-**Version**: `v2.2 — Rework Detection`  
+**Version**: `v2.3 — Process Conformance Analysis`  
 **Technology**: Java 21 / Spring Boot 3.3.3 / Spring Data JPA / Spring Kafka / PostgreSQL
 
 ---
 
 ## Purpose & Architecture Role
 
-`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, process variant analysis, and rework detection for SupplyChainX enterprise operations.
+`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, process variant analysis, rework detection, and process conformance analysis for SupplyChainX enterprise operations.
 
 In the polyglot SupplyChainX architecture:
 - **C# / .NET 8 Web API** (`backend/`): Core transactional operations (Products, Warehouses, Inventory, RBAC, AI Copilot, MCP Server).
-- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, workflow state reconstruction, step execution tracking, process variant discovery, rework analysis, and historical event persistence.
+- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, workflow state reconstruction, step execution tracking, process variant discovery, rework analysis, deterministic process conformance analysis, and historical event persistence.
 - **PostgreSQL**: Shared relational storage with indexed tables (`process_instances`, `process_events`, `process_steps`).
 - **Apache Kafka**: Primary domain event bus consumed asynchronously by `process-service`.
 
@@ -41,9 +41,9 @@ services/process-service/
     ├── main/
     │   ├── java/com/supplychainx/processservice/
     │   │   ├── ProcessServiceApplication.java       # Spring Boot Application Entrypoint
-    │   │   ├── analytics/                           # Process Analytics & Rework Engine Layer
+    │   │   ├── analytics/                           # Process Analytics & Conformance Engine Layer
     │   │   │   ├── ProcessAnalyticsController.java  # REST Controller (/api/v1/analytics/*)
-    │   │   │   ├── ProcessAnalyticsService.java     # Metrics, Variant & Rework Business Logic
+    │   │   │   ├── ProcessAnalyticsService.java     # Metrics, Variant, Rework & Conformance Logic
     │   │   │   ├── ProcessAnalyticsRepository.java  # Custom Specification & Aggregation Queries
     │   │   │   └── dto/
     │   │   │       ├── ProcessMetricsResponse.java  # Single Process Instance Analytics DTO
@@ -55,6 +55,9 @@ services/process-service/
     │   │   │       ├── ActivityReworkResponse.java   # Activity-level Rework Analysis DTO
     │   │   │       ├── ReworkAnalyticsSummaryResponse.java # Rework Summary DTO
     │   │   │       ├── ProcessReworkDetailResponse.java   # Single Process Instance Rework DTO
+    │   │   │       ├── ProcessConformanceResponse.java    # Process Conformance Detail DTO
+    │   │   │       ├── ConformanceAnalyticsSummaryResponse.java # Aggregate Conformance Summary DTO
+    │   │   │       ├── ProcessDeviationDto.java      # Deviation Detail DTO
     │   │   │       └── StageDurationStats.java       # Repository Projection Record
     │   │   ├── controller/
     │   │   │   └── ProcessController.java            # Process Instance CRUD APIs (/api/v1/processes)
@@ -89,7 +92,7 @@ services/process-service/
     └── test/
         └── java/com/supplychainx/processservice/
             ├── analytics/                           # Analytics Unit & Controller Tests
-            │   ├── ProcessAnalyticsServiceTests.java # Analytics Unit Tests (Math, Variants & Rework)
+            │   ├── ProcessAnalyticsServiceTests.java # Analytics Unit Tests (Metrics, Variants, Rework & Conformance)
             │   └── ProcessAnalyticsControllerTests.java # WebMvcTest Controller Tests
             ├── repository/
             │   └── ProcessRepositoryTests.java      # DataJpaTest for Entity Persistence & Queries
@@ -104,36 +107,32 @@ services/process-service/
 
 ---
 
-## v2.2 Rework Detection Engine
+## v2.3 Process Conformance Analysis Engine
 
-### 1. Definition & Detection Algorithm
-In SupplyChainX, **rework** is defined deterministically as repeated execution of the same activity within a single process instance.
-- "Rework detection" means repeated activity detection. The system detects repeated execution without assuming business intent or error causation.
-- Event ordering is preserved using domain event timestamps.
-- Repetitions are counted beyond the first occurrence:
-  $$\text{reworkOccurrencesForActivity}(A) = \max(N(A) - 1, 0)$$
-  $$\text{totalProcessRework}(P) = \sum_{A} \max(N_P(A) - 1, 0)$$
+### 1. Definition & Expected Process Paths
+Process conformance analysis compares actual chronological process executions against expected normative process reference models.
+- **PRODUCT_LIFECYCLE Expected Path**:
+  `PRODUCT_CREATION → PRODUCT_UPDATE → PRODUCT_DELETION`
+- Designed to be extensible so additional process types/expected paths can be configured deterministically.
 
-### 2. Process-Level Metrics
-- **reworkRate** (Completed processes):  
-  $$\text{reworkRate} = \frac{\text{reworkedProcessCount}}{\text{totalCompletedProcesses}} \times 100$$
-- **averageReworkOccurrencesPerReworkedProcess**:  
-  $$\text{avgReworkPerReworked} = \frac{\text{totalReworkOccurrences}}{\text{reworkedProcessCount}}$$
+### 2. Status Classification & Conformance Score
+- **Classification**:
+  - `CONFORMANT`: Actual sequence matches expected path with zero deviations.
+  - `DEVIATED`: One or more deviations detected.
+- **Structural Conformance Score**:
+  $$\text{conformanceScore} = \min\left(1.0, \frac{\text{matchedExpectedActivities}}{\text{expectedActivities}}\right)$$
+  - Fully conformant process: `1.0`.
+  - Process missing one of 3 expected activities: `0.67`.
+  - Implementation-defined structural coverage score, not a formal process mining fitness/precision metric.
 
-### 3. Activity-Level Metrics
-- **totalExecutionCount**: Total executions of activity across completed processes.
-- **reworkOccurrences**: Total rework occurrences for activity across completed processes.
-- **affectedProcessCount**: Number of completed processes containing repetition ($N(A) > 1$).
-- **averageReworkOccurrencesPerAffectedProcess**: $\frac{\text{reworkOccurrences}}{\text{affectedProcessCount}}$
-- **reworkContributionPercentage**: $\frac{\text{activityReworkOccurrences}}{\text{totalReworkOccurrences}} \times 100$
+### 3. Deviation Taxonomy & Detection Logic
 
-### 4. Cycle-Time Impact Comparison
-Compares completed processes with rework against completed processes without rework:
-- `averageCycleTimeWithReworkMs`, `averageCycleTimeWithoutReworkMs`
-- `minCycleTimeWithReworkMs`, `maxCycleTimeWithReworkMs`
-- `minCycleTimeWithoutReworkMs`, `maxCycleTimeWithoutReworkMs`
-- `cycleTimeDifferenceMs` = $\text{averageCycleTimeWithReworkMs} - \text{averageCycleTimeWithoutReworkMs}$
-*Note*: Cycle-time difference represents an observed association in historical event logs, not a causal business inference.
+| Deviation Type | Definition | Example Scenario |
+| :--- | :--- | :--- |
+| `MISSING_ACTIVITY` | An expected activity in the reference path was not executed. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → DELETE`<br>Deviation: Missing `PRODUCT_UPDATE` |
+| `UNEXPECTED_ACTIVITY` | An activity occurs that is not part of the expected path, or an unexpected repetition occurs. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → UPDATE → UPDATE → DELETE`<br>Deviation: Repeated `PRODUCT_UPDATE` |
+| `ORDER_VIOLATION` | An expected activity occurs, but out of the expected relative order. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → DELETE → UPDATE`<br>Deviation: `PRODUCT_UPDATE` after `PRODUCT_DELETION` |
+| `TERMINAL_ACTIVITY_VIOLATION` | An activity occurs after the expected terminal activity. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → UPDATE → DELETE → UPDATE`<br>Deviation: `PRODUCT_UPDATE` at position 4 after terminal `PRODUCT_DELETION` |
 
 ---
 
@@ -150,18 +149,20 @@ Compares completed processes with rework against completed processes without rew
 | `GET` | `/api/v1/analytics/variants/{variantKey}` | Get detailed metrics for a specific process variant | `processType`, `from`, `to` |
 | `GET` | `/api/v1/analytics/rework` | Aggregate rework summary & activity-level breakdown | `processType`, `from`, `to` |
 | `GET` | `/api/v1/analytics/rework/{processId}` | Instance-specific rework detail & repeated activities | None |
+| `GET` | `/api/v1/analytics/conformance` | Aggregate conformance metrics & deviation breakdown | `processType`, `from`, `to` |
+| `GET` | `/api/v1/analytics/conformance/{processId}` | Single process instance conformance analysis | None |
 
 ---
 
-## Example Process Sequences & E2E Validation
+## Example Process Scenarios & Verification Matrix
 
-| Process | Sequence | Rework Occurrences | Repetition Type |
-| :--- | :--- | :--- | :--- |
-| **Process A** | `CREATE -> UPDATE -> DELETE` | 0 | No rework |
-| **Process B** | `CREATE -> UPDATE -> UPDATE -> DELETE` | 1 (`UPDATE`) | Consecutive repetition |
-| **Process C** | `CREATE -> UPDATE -> UPDATE -> UPDATE -> DELETE` | 2 (`UPDATE`) | Triple execution |
-| **Process D** | `CREATE -> DELETE` | 0 | Minimal sequence |
-| **Process E** | `CREATE -> UPDATE -> DELETE -> UPDATE` | 1 (`UPDATE`) | Non-consecutive repetition |
+| Scenario | Sequence | Status | Score | Deviation Types Reported |
+| :--- | :--- | :--- | :--- | :--- |
+| **A** | `CREATE → UPDATE → DELETE` | `CONFORMANT` | `1.0` | None |
+| **B** | `CREATE → UPDATE → UPDATE → DELETE` | `DEVIATED` | `1.0` | `UNEXPECTED_ACTIVITY` |
+| **C** | `CREATE → DELETE` | `DEVIATED` | `0.67` | `MISSING_ACTIVITY` |
+| **D** | `CREATE → DELETE → UPDATE` | `DEVIATED` | `1.0` | `TERMINAL_ACTIVITY_VIOLATION`, `ORDER_VIOLATION` |
+| **E** | `CREATE → UPDATE → DELETE → UPDATE` | `DEVIATED` | `1.0` | `TERMINAL_ACTIVITY_VIOLATION` |
 
 ---
 
@@ -195,24 +196,25 @@ java -jar target/process-service-1.0.0-SNAPSHOT.jar --server.port=8081
 
 ## Verification & Benchmark Results
 
-- **Java Unit & Integration Test Suite**: `46/46 passed` (Analytics service logic, variant grouping, rework math, active process handling, repository queries, WebMvcTest controllers, Kafka consumers).
+- **Java Unit & Integration Test Suite**: `50/50 passed` (Analytics service logic, variant grouping, rework math, conformance scoring & deviation detection, repository queries, WebMvcTest controllers, Kafka consumers).
 - **C# ASP.NET Core Regression Suite**: `102/102 passed`.
-- **E2E Kafka → Spring Boot → PostgreSQL → Rework REST API Verification**: Generated real domain events via ASP.NET Core API (`/api/v1/products`) through Kafka into PostgreSQL.
+- **E2E Kafka → Spring Boot → PostgreSQL → Conformance REST API Verification**: Verified real domain events across all 5 test scenarios (A, B, C, D, E) via ASP.NET Core API (`/api/v1/products`) through Kafka into PostgreSQL.
 - **PostgreSQL vs REST API Verification**:
-  - Process A (`CREATE > UPDATE > DELETE`): `hasRework = false`, `totalReworkOccurrences = 0`.
-  - Process B (`CREATE > UPDATE > UPDATE > DELETE`): `hasRework = true`, `totalReworkOccurrences = 1` (`PRODUCT_UPDATE`: 1).
-  - Process C (`CREATE > UPDATE > UPDATE > UPDATE > DELETE`): `hasRework = true`, `totalReworkOccurrences = 2` (`PRODUCT_UPDATE`: 2).
-  - Process D (`CREATE > DELETE`): `hasRework = false`, `totalReworkOccurrences = 0`.
-  - Process E (`CREATE > UPDATE > DELETE > UPDATE`): `hasRework = true`, `totalReworkOccurrences = 1` (`PRODUCT_UPDATE`: 1 non-consecutive).
+  - Process A (`CREATE > UPDATE > DELETE`): `CONFORMANT`, `score = 1.0`, `deviations = 0`.
+  - Process B (`CREATE > UPDATE > UPDATE > DELETE`): `DEVIATED`, `score = 1.0`, `UNEXPECTED_ACTIVITY` (position 3).
+  - Process C (`CREATE > DELETE`): `DEVIATED`, `score = 0.67`, `MISSING_ACTIVITY` (`PRODUCT_UPDATE` at position 2).
+  - Process D (`CREATE > DELETE > UPDATE`): `DEVIATED`, `score = 1.0`, `TERMINAL_ACTIVITY_VIOLATION` & `ORDER_VIOLATION`.
+  - Process E (`CREATE > UPDATE > DELETE > UPDATE`): `DEVIATED`, `score = 1.0`, `TERMINAL_ACTIVITY_VIOLATION` (position 4).
 - **Aggregate Summary Verification**:
-  - `totalCompletedProcesses`: 11
-  - `reworkedProcessCount`: 4
-  - `nonReworkedProcessCount`: 7
-  - `reworkRate`: 36.36%
-  - `totalReworkOccurrences`: 5
-  - `averageReworkOccurrencesPerReworkedProcess`: 1.25
-  - `activities[0]`: `PRODUCT_UPDATE`, `totalExecutionCount`: 14, `reworkOccurrences`: 5, `affectedProcessCount`: 4, `reworkContributionPercentage`: 100.0%.
-- **Latency / Performance**: API response latency measured $< 25\text{ ms}$ on local test dataset. *Local dataset size is limited; production-scale p95/p99 latency should be evaluated under full load.*
+  - `totalProcessesAnalyzed`: 12
+  - `conformantProcessCount`: 5
+  - `deviatedProcessCount`: 7
+  - `conformanceRate`: 41.67%
+  - `averageConformanceScore`: 0.95
+  - `totalDeviationCount`: 9 (`MISSING_ACTIVITY`: 2, `UNEXPECTED_ACTIVITY`: 4, `ORDER_VIOLATION`: 1, `TERMINAL_ACTIVITY_VIOLATION`: 2).
+- **Latency / Performance**: API response latency measured $\approx 15\text{ ms} - 47\text{ ms}$ on local test dataset. *Local dataset size is limited; production-scale p95/p99 latency should be evaluated under full load.*
+- **Limitations**: Deterministic, rule-based structural conformance algorithm inspired by process mining concepts. Does not use ML, fuzzy matching, or statistical token-based fitness alignment.
+
 
 
 

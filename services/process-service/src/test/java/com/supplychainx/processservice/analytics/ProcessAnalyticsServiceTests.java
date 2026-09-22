@@ -411,4 +411,106 @@ class ProcessAnalyticsServiceTests {
         assertEquals(0.0, summary.reworkRate());
         assertTrue(summary.activities().isEmpty());
     }
+
+    @Test
+    void shouldEvaluateProcessConformanceAcrossScenarios() {
+        Instant t1 = Instant.now().minusSeconds(1000);
+
+        // 1. Fully conformant: CREATE -> UPDATE -> DELETE
+        ProcessInstance p1 = new ProcessInstance("BIZ-CONF-1", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p1.setCompletedAt(t1.plusSeconds(100));
+        p1.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p1.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p1.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+
+        // 2. Missing activity: CREATE -> DELETE
+        ProcessInstance p2 = new ProcessInstance("BIZ-CONF-2", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p2.setCompletedAt(t1.plusSeconds(200));
+        p2.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p2.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+
+        // 3. Repeated activity: CREATE -> UPDATE -> UPDATE -> DELETE
+        ProcessInstance p3 = new ProcessInstance("BIZ-CONF-3", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p3.setCompletedAt(t1.plusSeconds(300));
+        p3.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(150), t1.plusSeconds(150)));
+        p3.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(300), t1.plusSeconds(300)));
+
+        // 4. Out-of-order: CREATE -> DELETE -> UPDATE
+        ProcessInstance p4 = new ProcessInstance("BIZ-CONF-4", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p4.setCompletedAt(t1.plusSeconds(400));
+        p4.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p4.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+        p4.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(400), t1.plusSeconds(400)));
+
+        // 5. Activity after terminal: CREATE -> UPDATE -> DELETE -> UPDATE
+        ProcessInstance p5 = new ProcessInstance("BIZ-CONF-5", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p5.setCompletedAt(t1.plusSeconds(500));
+        p5.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p5.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+        p5.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(300), t1.plusSeconds(300)));
+        p5.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(500), t1.plusSeconds(500)));
+
+        instanceRepository.saveAll(List.of(p1, p2, p3, p4, p5));
+
+        // 1. Process 1 (Conformant)
+        ProcessConformanceResponse c1 = analyticsService.getProcessConformanceDetail(p1.getId());
+        assertEquals("CONFORMANT", c1.status());
+        assertEquals(1.0, c1.conformanceScore());
+        assertEquals(0, c1.deviationCount());
+        assertTrue(c1.deviations().isEmpty());
+
+        // 2. Process 2 (Missing activity)
+        ProcessConformanceResponse c2 = analyticsService.getProcessConformanceDetail(p2.getId());
+        assertEquals("DEVIATED", c2.status());
+        assertEquals(0.67, c2.conformanceScore());
+        assertEquals(1, c2.deviationCount());
+        assertEquals(1, c2.missingActivities().size());
+        assertEquals("PRODUCT_UPDATE", c2.missingActivities().get(0));
+        assertEquals("MISSING_ACTIVITY", c2.deviations().get(0).deviationType());
+
+        // 3. Process 3 (Repeated activity)
+        ProcessConformanceResponse c3 = analyticsService.getProcessConformanceDetail(p3.getId());
+        assertEquals("DEVIATED", c3.status());
+        assertEquals(1.0, c3.conformanceScore());
+        assertEquals(1, c3.deviationCount());
+        assertEquals("UNEXPECTED_ACTIVITY", c3.deviations().get(0).deviationType());
+
+        // 4. Process 4 (Out-of-order)
+        ProcessConformanceResponse c4 = analyticsService.getProcessConformanceDetail(p4.getId());
+        assertEquals("DEVIATED", c4.status());
+        assertEquals(1.0, c4.conformanceScore());
+        assertEquals(2, c4.deviationCount()); // TERMINAL_ACTIVITY_VIOLATION + ORDER_VIOLATION
+        assertTrue(c4.orderViolations().contains("PRODUCT_UPDATE"));
+
+        // 5. Process 5 (Activity after terminal)
+        ProcessConformanceResponse c5 = analyticsService.getProcessConformanceDetail(p5.getId());
+        assertEquals("DEVIATED", c5.status());
+        assertEquals(1.0, c5.conformanceScore());
+        assertEquals(1, c5.deviationCount());
+        assertEquals("TERMINAL_ACTIVITY_VIOLATION", c5.deviations().get(0).deviationType());
+
+        // 6. Aggregate Summary
+        ConformanceAnalyticsSummaryResponse summary = analyticsService.getConformanceAnalyticsSummary("PRODUCT_LIFECYCLE", null, null);
+        assertEquals(5, summary.totalProcessesAnalyzed());
+        assertEquals(1, summary.conformantProcessCount());
+        assertEquals(4, summary.deviatedProcessCount());
+        assertEquals(20.0, summary.conformanceRate());
+        assertEquals(0.93, summary.averageConformanceScore());
+        assertEquals(5, summary.totalDeviationCount());
+        assertEquals(1L, summary.deviationCountsByType().get("MISSING_ACTIVITY"));
+        assertEquals(1L, summary.deviationCountsByType().get("UNEXPECTED_ACTIVITY"));
+        assertEquals(1L, summary.deviationCountsByType().get("ORDER_VIOLATION"));
+        assertEquals(2L, summary.deviationCountsByType().get("TERMINAL_ACTIVITY_VIOLATION"));
+    }
+
+    @Test
+    void shouldHandleEmptyConformanceSummary() {
+        ConformanceAnalyticsSummaryResponse summary = analyticsService.getConformanceAnalyticsSummary("NON_EXISTENT", null, null);
+        assertEquals(0, summary.totalProcessesAnalyzed());
+        assertEquals(0, summary.conformantProcessCount());
+        assertEquals(0.0, summary.conformanceRate());
+        assertEquals(0.0, summary.averageConformanceScore());
+    }
 }
