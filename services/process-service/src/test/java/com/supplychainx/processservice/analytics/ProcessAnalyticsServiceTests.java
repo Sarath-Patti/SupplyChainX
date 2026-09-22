@@ -297,4 +297,118 @@ class ProcessAnalyticsServiceTests {
             analyticsService.getVariantByKey("UNKNOWN>KEY", "PRODUCT_LIFECYCLE", null, null)
         );
     }
+
+    @Test
+    void shouldDetectReworkCorrectlyAcrossMultipleScenarios() {
+        Instant t1 = Instant.now().minusSeconds(1000);
+
+        // Process 1: No repeated activity (CREATE -> UPDATE -> DELETE) - Completed 100s
+        ProcessInstance p1 = new ProcessInstance("BIZ-RW-1", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p1.setCompletedAt(t1.plusSeconds(100));
+        p1.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p1.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p1.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+
+        // Process 2: One repeated activity (CREATE -> UPDATE -> UPDATE -> DELETE) - Completed 200s (1 rework)
+        ProcessInstance p2 = new ProcessInstance("BIZ-RW-2", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p2.setCompletedAt(t1.plusSeconds(200));
+        p2.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p2.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p2.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(120), t1.plusSeconds(120)));
+        p2.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+
+        // Process 3: Activity repeated three times (CREATE -> UPDATE -> UPDATE -> UPDATE -> DELETE) - Completed 300s (2 reworks)
+        ProcessInstance p3 = new ProcessInstance("BIZ-RW-3", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p3.setCompletedAt(t1.plusSeconds(300));
+        p3.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(40), t1.plusSeconds(40)));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+        p3.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+        p3.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(300), t1.plusSeconds(300)));
+
+        // Process 4: Non-consecutive repetition (CREATE -> UPDATE -> DELETE -> UPDATE) - Completed 400s (1 rework)
+        ProcessInstance p4 = new ProcessInstance("BIZ-RW-4", "PRODUCT_LIFECYCLE", "COMPLETED", t1);
+        p4.setCompletedAt(t1.plusSeconds(400));
+        p4.addStep(new ProcessStep("PRODUCT_CREATION", "COMPLETED", t1, t1));
+        p4.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(100), t1.plusSeconds(100)));
+        p4.addStep(new ProcessStep("PRODUCT_DELETION", "COMPLETED", t1.plusSeconds(200), t1.plusSeconds(200)));
+        p4.addStep(new ProcessStep("PRODUCT_UPDATE", "COMPLETED", t1.plusSeconds(400), t1.plusSeconds(400)));
+
+        // Process 5: Active process with rework (CREATE -> UPDATE -> UPDATE) - Active
+        ProcessInstance p5 = new ProcessInstance("BIZ-RW-5", "PRODUCT_LIFECYCLE", "ACTIVE", t1);
+        p5.addStep(new ProcessStep("PRODUCT_CREATION", "ACTIVE", t1, t1));
+        p5.addStep(new ProcessStep("PRODUCT_UPDATE", "ACTIVE", t1.plusSeconds(50), t1.plusSeconds(50)));
+        p5.addStep(new ProcessStep("PRODUCT_UPDATE", "ACTIVE", t1.plusSeconds(100), t1.plusSeconds(100)));
+
+        instanceRepository.saveAll(List.of(p1, p2, p3, p4, p5));
+
+        // 1. Process Rework Detail Tests
+        ProcessReworkDetailResponse d1 = analyticsService.getProcessReworkDetail(p1.getId());
+        assertFalse(d1.hasRework());
+        assertEquals(0, d1.totalReworkOccurrences());
+        assertTrue(d1.repeatedActivities().isEmpty());
+        assertEquals(100000L, d1.cycleTimeMs());
+
+        ProcessReworkDetailResponse d2 = analyticsService.getProcessReworkDetail(p2.getId());
+        assertTrue(d2.hasRework());
+        assertEquals(1, d2.totalReworkOccurrences());
+        assertEquals(1L, d2.repeatedActivities().get("PRODUCT_UPDATE"));
+
+        ProcessReworkDetailResponse d3 = analyticsService.getProcessReworkDetail(p3.getId());
+        assertTrue(d3.hasRework());
+        assertEquals(2, d3.totalReworkOccurrences());
+        assertEquals(2L, d3.repeatedActivities().get("PRODUCT_UPDATE"));
+
+        ProcessReworkDetailResponse d4 = analyticsService.getProcessReworkDetail(p4.getId());
+        assertTrue(d4.hasRework());
+        assertEquals(1, d4.totalReworkOccurrences());
+        assertEquals(1L, d4.repeatedActivities().get("PRODUCT_UPDATE"));
+
+        // Active process detail shows rework but null cycleTime
+        ProcessReworkDetailResponse d5 = analyticsService.getProcessReworkDetail(p5.getId());
+        assertTrue(d5.hasRework());
+        assertEquals(1, d5.totalReworkOccurrences());
+        assertNull(d5.cycleTimeMs());
+
+        // 2. Rework Summary Aggregate Metrics (only completed processes: 4 total, 3 reworked, 1 non-reworked)
+        ReworkAnalyticsSummaryResponse summary = analyticsService.getReworkAnalyticsSummary("PRODUCT_LIFECYCLE", null, null);
+
+        assertEquals(4, summary.totalCompletedProcesses());
+        assertEquals(3, summary.reworkedProcessCount());
+        assertEquals(1, summary.nonReworkedProcessCount());
+        assertEquals(75.0, summary.reworkRate());
+        assertEquals(4, summary.totalReworkOccurrences()); // 1 + 2 + 1 = 4
+        assertEquals(1.33, summary.averageReworkOccurrencesPerReworkedProcess()); // 4 / 3 = 1.33
+
+        // Cycle times:
+        // Reworked cycle times: 200s, 300s, 400s -> avg = 300s (300000ms), min = 200s, max = 400s
+        // Non-reworked cycle times: 100s -> avg = 100s (100000ms), min = 100s, max = 100s
+        // Difference = 300000 - 100000 = 200000ms
+        assertEquals(300000.0, summary.averageCycleTimeWithReworkMs());
+        assertEquals(100000.0, summary.averageCycleTimeWithoutReworkMs());
+        assertEquals(200000.0, summary.cycleTimeDifferenceMs());
+        assertEquals(200000L, summary.minCycleTimeWithReworkMs());
+        assertEquals(400000L, summary.maxCycleTimeWithReworkMs());
+        assertEquals(100000L, summary.minCycleTimeWithoutReworkMs());
+        assertEquals(100000L, summary.maxCycleTimeWithoutReworkMs());
+
+        // Activity Rework Metrics:
+        assertEquals(1, summary.activities().size());
+        ActivityReworkResponse act = summary.activities().get(0);
+        assertEquals("PRODUCT_UPDATE", act.activityName());
+        assertEquals(8, act.totalExecutionCount()); // p1:1, p2:2, p3:3, p4:2 = 8
+        assertEquals(4, act.reworkOccurrences()); // 0+1+2+1 = 4
+        assertEquals(3, act.affectedProcessCount()); // p2, p3, p4 = 3
+        assertEquals(1.33, act.averageReworkOccurrencesPerAffectedProcess()); // 4 / 3 = 1.33
+        assertEquals(100.0, act.reworkContributionPercentage());
+    }
+
+    @Test
+    void shouldHandleEmptyReworkSummary() {
+        ReworkAnalyticsSummaryResponse summary = analyticsService.getReworkAnalyticsSummary("NON_EXISTENT", null, null);
+        assertEquals(0, summary.totalCompletedProcesses());
+        assertEquals(0, summary.reworkedProcessCount());
+        assertEquals(0.0, summary.reworkRate());
+        assertTrue(summary.activities().isEmpty());
+    }
 }

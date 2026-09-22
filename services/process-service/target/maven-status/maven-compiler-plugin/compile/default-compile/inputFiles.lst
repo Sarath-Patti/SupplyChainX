@@ -2,10 +2,13 @@
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/ProcessAnalyticsController.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/ProcessAnalyticsRepository.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/ProcessAnalyticsService.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ActivityReworkResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/BottleneckResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessAnalyticsSummaryResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessMetricsResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessReworkDetailResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ProcessVariantResponse.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ReworkAnalyticsSummaryResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/StageDurationStats.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/StageMetricsResponse.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/main/java/com/supplychainx/processservice/analytics/dto/ThroughputResponse.java

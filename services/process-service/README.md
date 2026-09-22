@@ -1,17 +1,17 @@
 # SupplyChainX — Process Analytics Service (`process-service`)
 
-**Version**: `v2.1 — Process Variant Analysis`  
+**Version**: `v2.2 — Rework Detection`  
 **Technology**: Java 21 / Spring Boot 3.3.3 / Spring Data JPA / Spring Kafka / PostgreSQL
 
 ---
 
 ## Purpose & Architecture Role
 
-`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, and process variant analysis for SupplyChainX enterprise operations.
+`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, process variant analysis, and rework detection for SupplyChainX enterprise operations.
 
 In the polyglot SupplyChainX architecture:
 - **C# / .NET 8 Web API** (`backend/`): Core transactional operations (Products, Warehouses, Inventory, RBAC, AI Copilot, MCP Server).
-- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, workflow state reconstruction, step execution tracking, process variant discovery, and historical event persistence.
+- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, workflow state reconstruction, step execution tracking, process variant discovery, rework analysis, and historical event persistence.
 - **PostgreSQL**: Shared relational storage with indexed tables (`process_instances`, `process_events`, `process_steps`).
 - **Apache Kafka**: Primary domain event bus consumed asynchronously by `process-service`.
 
@@ -41,17 +41,20 @@ services/process-service/
     ├── main/
     │   ├── java/com/supplychainx/processservice/
     │   │   ├── ProcessServiceApplication.java       # Spring Boot Application Entrypoint
-    │   │   ├── analytics/                           # v2.0/v2.1 Process Analytics Engine Layer
+    │   │   ├── analytics/                           # Process Analytics & Rework Engine Layer
     │   │   │   ├── ProcessAnalyticsController.java  # REST Controller (/api/v1/analytics/*)
-    │   │   │   ├── ProcessAnalyticsService.java     # Metrics & Variant Analysis Business Logic
+    │   │   │   ├── ProcessAnalyticsService.java     # Metrics, Variant & Rework Business Logic
     │   │   │   ├── ProcessAnalyticsRepository.java  # Custom Specification & Aggregation Queries
     │   │   │   └── dto/
     │   │   │       ├── ProcessMetricsResponse.java  # Single Process Instance Analytics DTO
     │   │   │       ├── StageMetricsResponse.java    # Stage Breakdown DTO
-    │   │   │       ├── ProcessAnalyticsSummaryResponse.java # Aggregate Metrics DTO
+    │   │   │       ├── ProcessAnalyticsSummaryResponse.java # Aggregate Summary DTO
     │   │   │       ├── ThroughputResponse.java       # Process Throughput Metrics DTO
     │   │   │       ├── BottleneckResponse.java       # Stage Bottleneck Metrics DTO
     │   │   │       ├── ProcessVariantResponse.java   # Process Variant Analysis DTO
+    │   │   │       ├── ActivityReworkResponse.java   # Activity-level Rework Analysis DTO
+    │   │   │       ├── ReworkAnalyticsSummaryResponse.java # Rework Summary DTO
+    │   │   │       ├── ProcessReworkDetailResponse.java   # Single Process Instance Rework DTO
     │   │   │       └── StageDurationStats.java       # Repository Projection Record
     │   │   ├── controller/
     │   │   │   └── ProcessController.java            # Process Instance CRUD APIs (/api/v1/processes)
@@ -86,7 +89,7 @@ services/process-service/
     └── test/
         └── java/com/supplychainx/processservice/
             ├── analytics/                           # Analytics Unit & Controller Tests
-            │   ├── ProcessAnalyticsServiceTests.java # Analytics Unit Tests (Math, Variants & Aggregation)
+            │   ├── ProcessAnalyticsServiceTests.java # Analytics Unit Tests (Math, Variants & Rework)
             │   └── ProcessAnalyticsControllerTests.java # WebMvcTest Controller Tests
             ├── repository/
             │   └── ProcessRepositoryTests.java      # DataJpaTest for Entity Persistence & Queries
@@ -101,20 +104,36 @@ services/process-service/
 
 ---
 
-## v2.0 & v2.1 Analytics Capability
+## v2.2 Rework Detection Engine
 
-### 1. Metrics & Formulas
-- **Cycle Time** (Completed Processes):  
-  $$\text{cycleTimeMs} = \text{completedAt} - \text{startedAt}$$
-- **Stage Duration**:  
-  $$\text{stageDurationMs} = \text{step.completedAt} - \text{step.startedAt}$$
-- **Throughput**:  
-  $$\text{throughputPerHour} = \frac{\text{completedProcesses}}{\text{timeWindowHours}}$$
-- **Bottleneck Contribution**:  
-  $$\text{processTimeContribution} = \frac{\text{stageTotalDuration}}{\text{totalDurationOfAnalyzedStages}}$$
-- **Process Variant**: Canonical ordered sequence of process stages joined by `>` (e.g., `PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_DELETION`).
-- **Variant Share Percentage**:  
-  $$\text{percentage} = \frac{\text{completedCount}}{\text{totalCompletedProcesses}} \times 100$$
+### 1. Definition & Detection Algorithm
+In SupplyChainX, **rework** is defined deterministically as repeated execution of the same activity within a single process instance.
+- "Rework detection" means repeated activity detection. The system detects repeated execution without assuming business intent or error causation.
+- Event ordering is preserved using domain event timestamps.
+- Repetitions are counted beyond the first occurrence:
+  $$\text{reworkOccurrencesForActivity}(A) = \max(N(A) - 1, 0)$$
+  $$\text{totalProcessRework}(P) = \sum_{A} \max(N_P(A) - 1, 0)$$
+
+### 2. Process-Level Metrics
+- **reworkRate** (Completed processes):  
+  $$\text{reworkRate} = \frac{\text{reworkedProcessCount}}{\text{totalCompletedProcesses}} \times 100$$
+- **averageReworkOccurrencesPerReworkedProcess**:  
+  $$\text{avgReworkPerReworked} = \frac{\text{totalReworkOccurrences}}{\text{reworkedProcessCount}}$$
+
+### 3. Activity-Level Metrics
+- **totalExecutionCount**: Total executions of activity across completed processes.
+- **reworkOccurrences**: Total rework occurrences for activity across completed processes.
+- **affectedProcessCount**: Number of completed processes containing repetition ($N(A) > 1$).
+- **averageReworkOccurrencesPerAffectedProcess**: $\frac{\text{reworkOccurrences}}{\text{affectedProcessCount}}$
+- **reworkContributionPercentage**: $\frac{\text{activityReworkOccurrences}}{\text{totalReworkOccurrences}} \times 100$
+
+### 4. Cycle-Time Impact Comparison
+Compares completed processes with rework against completed processes without rework:
+- `averageCycleTimeWithReworkMs`, `averageCycleTimeWithoutReworkMs`
+- `minCycleTimeWithReworkMs`, `maxCycleTimeWithReworkMs`
+- `minCycleTimeWithoutReworkMs`, `maxCycleTimeWithoutReworkMs`
+- `cycleTimeDifferenceMs` = $\text{averageCycleTimeWithReworkMs} - \text{averageCycleTimeWithoutReworkMs}$
+*Note*: Cycle-time difference represents an observed association in historical event logs, not a causal business inference.
 
 ---
 
@@ -129,6 +148,20 @@ services/process-service/
 | `GET` | `/api/v1/analytics/bottlenecks` | Stage bottleneck analysis & duration contribution | `processType`, `from`, `to` |
 | `GET` | `/api/v1/analytics/variants` | List process variants ranked by occurrence count | `processType`, `from`, `to` |
 | `GET` | `/api/v1/analytics/variants/{variantKey}` | Get detailed metrics for a specific process variant | `processType`, `from`, `to` |
+| `GET` | `/api/v1/analytics/rework` | Aggregate rework summary & activity-level breakdown | `processType`, `from`, `to` |
+| `GET` | `/api/v1/analytics/rework/{processId}` | Instance-specific rework detail & repeated activities | None |
+
+---
+
+## Example Process Sequences & E2E Validation
+
+| Process | Sequence | Rework Occurrences | Repetition Type |
+| :--- | :--- | :--- | :--- |
+| **Process A** | `CREATE -> UPDATE -> DELETE` | 0 | No rework |
+| **Process B** | `CREATE -> UPDATE -> UPDATE -> DELETE` | 1 (`UPDATE`) | Consecutive repetition |
+| **Process C** | `CREATE -> UPDATE -> UPDATE -> UPDATE -> DELETE` | 2 (`UPDATE`) | Triple execution |
+| **Process D** | `CREATE -> DELETE` | 0 | Minimal sequence |
+| **Process E** | `CREATE -> UPDATE -> DELETE -> UPDATE` | 1 (`UPDATE`) | Non-consecutive repetition |
 
 ---
 
@@ -155,22 +188,32 @@ export DB_USERNAME=postgres
 export DB_PASSWORD=postgres_dev_password
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 
-java -jar target/process-service-1.0.0-SNAPSHOT.jar
+java -jar target/process-service-1.0.0-SNAPSHOT.jar --server.port=8081
 ```
 
 ---
 
 ## Verification & Benchmark Results
 
-- **Java Unit & Integration Test Suite**: `42/42 passed` (Analytics service logic, variant grouping, repository queries, WebMvcTest controllers, Kafka consumers, entity mappings).
+- **Java Unit & Integration Test Suite**: `46/46 passed` (Analytics service logic, variant grouping, rework math, active process handling, repository queries, WebMvcTest controllers, Kafka consumers).
 - **C# ASP.NET Core Regression Suite**: `102/102 passed`.
-- **E2E Kafka → Spring Boot → PostgreSQL → Analytics Verification**: Verified with real domain events emitted from ASP.NET Core API via Kafka into PostgreSQL and read through `/api/v1/analytics/variants`.
-- **SQL Mathematical Verification**: Independent PostgreSQL event log calculations verified exact match against API responses for 4 distinct process variants:
-  1. `PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_DELETION` (4 completed, 66.67%)
-  2. `PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_UPDATE>PRODUCT_DELETION` (1 completed, 16.67%)
-  3. `PRODUCT_CREATION>PRODUCT_DELETION` (1 completed, 16.67%)
-  4. `PRODUCT_CREATION` (3 active, 0 completed)
-- **Latency / Performance**: API response latency measured $< 15\text{ ms}$ for all endpoints on local test dataset. *Local dataset too small for a meaningful multi-thousand record p95/p99 latency benchmark.*
+- **E2E Kafka → Spring Boot → PostgreSQL → Rework REST API Verification**: Generated real domain events via ASP.NET Core API (`/api/v1/products`) through Kafka into PostgreSQL.
+- **PostgreSQL vs REST API Verification**:
+  - Process A (`CREATE > UPDATE > DELETE`): `hasRework = false`, `totalReworkOccurrences = 0`.
+  - Process B (`CREATE > UPDATE > UPDATE > DELETE`): `hasRework = true`, `totalReworkOccurrences = 1` (`PRODUCT_UPDATE`: 1).
+  - Process C (`CREATE > UPDATE > UPDATE > UPDATE > DELETE`): `hasRework = true`, `totalReworkOccurrences = 2` (`PRODUCT_UPDATE`: 2).
+  - Process D (`CREATE > DELETE`): `hasRework = false`, `totalReworkOccurrences = 0`.
+  - Process E (`CREATE > UPDATE > DELETE > UPDATE`): `hasRework = true`, `totalReworkOccurrences = 1` (`PRODUCT_UPDATE`: 1 non-consecutive).
+- **Aggregate Summary Verification**:
+  - `totalCompletedProcesses`: 11
+  - `reworkedProcessCount`: 4
+  - `nonReworkedProcessCount`: 7
+  - `reworkRate`: 36.36%
+  - `totalReworkOccurrences`: 5
+  - `averageReworkOccurrencesPerReworkedProcess`: 1.25
+  - `activities[0]`: `PRODUCT_UPDATE`, `totalExecutionCount`: 14, `reworkOccurrences`: 5, `affectedProcessCount`: 4, `reworkContributionPercentage`: 100.0%.
+- **Latency / Performance**: API response latency measured $< 25\text{ ms}$ on local test dataset. *Local dataset size is limited; production-scale p95/p99 latency should be evaluated under full load.*
+
 
 
 

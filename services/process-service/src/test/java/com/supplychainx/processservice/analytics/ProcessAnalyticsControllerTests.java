@@ -221,4 +221,81 @@ class ProcessAnalyticsControllerTests {
         mockMvc.perform(get("/api/v1/analytics/variants/{variantKey}", "UNKNOWN"))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void shouldReturnReworkSummary() throws Exception {
+        ActivityReworkResponse act = new ActivityReworkResponse(
+            "PRODUCT_UPDATE",
+            10,
+            4,
+            3,
+            1.33,
+            100.0
+        );
+
+        ReworkAnalyticsSummaryResponse summary = new ReworkAnalyticsSummaryResponse(
+            "PRODUCT_LIFECYCLE",
+            10,
+            4,
+            6,
+            40.0,
+            5,
+            1.25,
+            25000.0,
+            12000.0,
+            15000L,
+            35000L,
+            8000L,
+            18000L,
+            13000.0,
+            List.of(act),
+            null,
+            null
+        );
+
+        when(analyticsService.getReworkAnalyticsSummary(eq("PRODUCT_LIFECYCLE"), any(), any())).thenReturn(summary);
+
+        mockMvc.perform(get("/api/v1/analytics/rework")
+                .param("processType", "PRODUCT_LIFECYCLE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.processType").value("PRODUCT_LIFECYCLE"))
+            .andExpect(jsonPath("$.totalCompletedProcesses").value(10))
+            .andExpect(jsonPath("$.reworkedProcessCount").value(4))
+            .andExpect(jsonPath("$.reworkRate").value(40.0))
+            .andExpect(jsonPath("$.cycleTimeDifferenceMs").value(13000.0))
+            .andExpect(jsonPath("$.activities[0].activityName").value("PRODUCT_UPDATE"));
+    }
+
+    @Test
+    void shouldReturnProcessReworkDetailOr404() throws Exception {
+        UUID processId = UUID.randomUUID();
+        ProcessReworkDetailResponse detail = new ProcessReworkDetailResponse(
+            processId,
+            "BIZ-123",
+            "PRODUCT_LIFECYCLE",
+            "COMPLETED",
+            "PRODUCT_CREATION>PRODUCT_UPDATE>PRODUCT_UPDATE>PRODUCT_DELETION",
+            true,
+            1,
+            java.util.Map.of("PRODUCT_UPDATE", 1L),
+            20000L,
+            Instant.now()
+        );
+
+        when(analyticsService.getProcessReworkDetail(processId)).thenReturn(detail);
+
+        mockMvc.perform(get("/api/v1/analytics/rework/{processId}", processId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.processInstanceId").value(processId.toString()))
+            .andExpect(jsonPath("$.hasRework").value(true))
+            .andExpect(jsonPath("$.totalReworkOccurrences").value(1))
+            .andExpect(jsonPath("$.repeatedActivities.PRODUCT_UPDATE").value(1));
+
+        UUID unknownId = UUID.randomUUID();
+        when(analyticsService.getProcessReworkDetail(unknownId))
+            .thenThrow(new ResourceNotFoundException("ProcessInstance not found with ID: " + unknownId));
+
+        mockMvc.perform(get("/api/v1/analytics/rework/{processId}", unknownId))
+            .andExpect(status().isNotFound());
+    }
 }

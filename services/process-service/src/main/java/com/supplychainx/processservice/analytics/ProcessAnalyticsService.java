@@ -361,6 +361,220 @@ public class ProcessAnalyticsService {
             .orElseThrow(() -> new ResourceNotFoundException("Process variant not found with key: " + variantKey));
     }
 
+    public ReworkAnalyticsSummaryResponse getReworkAnalyticsSummary(String processType, Instant from, Instant to) {
+        List<ProcessInstance> completedInstances = analyticsRepository.findCompletedInstancesForAnalytics(processType, from, to);
+
+        long totalCompletedProcesses = completedInstances.size();
+        if (totalCompletedProcesses == 0) {
+            return new ReworkAnalyticsSummaryResponse(
+                processType != null ? processType : "ALL_TYPES",
+                0L,
+                0L,
+                0L,
+                0.0,
+                0L,
+                0.0,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                Collections.emptyList(),
+                from,
+                to
+            );
+        }
+
+        long reworkedProcessCount = 0;
+        long nonReworkedProcessCount = 0;
+        long totalReworkOccurrences = 0;
+
+        List<Long> cycleTimesWithRework = new ArrayList<>();
+        List<Long> cycleTimesWithoutRework = new ArrayList<>();
+
+        Map<String, Long> globalExecutionsByActivity = new HashMap<>();
+        Map<String, Long> globalReworkByActivity = new HashMap<>();
+        Map<String, Long> affectedProcessesByActivity = new HashMap<>();
+
+        for (ProcessInstance instance : completedInstances) {
+            List<String> sequence = extractActivitySequence(instance);
+
+            Map<String, Long> activityCounts = sequence.stream()
+                .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+
+            long processReworkCount = 0;
+
+            for (Map.Entry<String, Long> entry : activityCounts.entrySet()) {
+                String activity = entry.getKey();
+                long execCount = entry.getValue();
+
+                globalExecutionsByActivity.put(activity, globalExecutionsByActivity.getOrDefault(activity, 0L) + execCount);
+
+                long actRework = Math.max(0L, execCount - 1L);
+                if (actRework > 0) {
+                    globalReworkByActivity.put(activity, globalReworkByActivity.getOrDefault(activity, 0L) + actRework);
+                    affectedProcessesByActivity.put(activity, affectedProcessesByActivity.getOrDefault(activity, 0L) + 1L);
+                    processReworkCount += actRework;
+                }
+            }
+
+            totalReworkOccurrences += processReworkCount;
+
+            Long cycleTimeMs = null;
+            if (instance.getStartedAt() != null && instance.getCompletedAt() != null) {
+                cycleTimeMs = Math.max(0L, Duration.between(instance.getStartedAt(), instance.getCompletedAt()).toMillis());
+            }
+
+            if (processReworkCount > 0) {
+                reworkedProcessCount++;
+                if (cycleTimeMs != null) {
+                    cycleTimesWithRework.add(cycleTimeMs);
+                }
+            } else {
+                nonReworkedProcessCount++;
+                if (cycleTimeMs != null) {
+                    cycleTimesWithoutRework.add(cycleTimeMs);
+                }
+            }
+        }
+
+        double reworkRate = Math.round(((double) reworkedProcessCount / totalCompletedProcesses * 100.0) * 100.0) / 100.0;
+        double avgReworkPerReworked = reworkedProcessCount > 0
+            ? Math.round(((double) totalReworkOccurrences / reworkedProcessCount) * 100.0) / 100.0
+            : 0.0;
+
+        Double avgCycleTimeWithReworkMs = cycleTimesWithRework.isEmpty() ? null
+            : Math.round(cycleTimesWithRework.stream().mapToLong(Long::longValue).average().orElse(0.0) * 100.0) / 100.0;
+        Long minCycleTimeWithReworkMs = cycleTimesWithRework.isEmpty() ? null
+            : cycleTimesWithRework.stream().mapToLong(Long::longValue).min().orElse(0L);
+        Long maxCycleTimeWithReworkMs = cycleTimesWithRework.isEmpty() ? null
+            : cycleTimesWithRework.stream().mapToLong(Long::longValue).max().orElse(0L);
+
+        Double avgCycleTimeWithoutReworkMs = cycleTimesWithoutRework.isEmpty() ? null
+            : Math.round(cycleTimesWithoutRework.stream().mapToLong(Long::longValue).average().orElse(0.0) * 100.0) / 100.0;
+        Long minCycleTimeWithoutReworkMs = cycleTimesWithoutRework.isEmpty() ? null
+            : cycleTimesWithoutRework.stream().mapToLong(Long::longValue).min().orElse(0L);
+        Long maxCycleTimeWithoutReworkMs = cycleTimesWithoutRework.isEmpty() ? null
+            : cycleTimesWithoutRework.stream().mapToLong(Long::longValue).max().orElse(0L);
+
+        Double cycleTimeDifferenceMs = (avgCycleTimeWithReworkMs != null && avgCycleTimeWithoutReworkMs != null)
+            ? Math.round((avgCycleTimeWithReworkMs - avgCycleTimeWithoutReworkMs) * 100.0) / 100.0
+            : null;
+
+        final long finalTotalReworkOccurrences = totalReworkOccurrences;
+
+        List<ActivityReworkResponse> activityResponses = globalReworkByActivity.entrySet().stream()
+            .map(entry -> {
+                String activity = entry.getKey();
+                long reworkCount = entry.getValue();
+                long totalExec = globalExecutionsByActivity.getOrDefault(activity, 0L);
+                long affectedProc = affectedProcessesByActivity.getOrDefault(activity, 0L);
+
+                double avgPerAffected = affectedProc > 0
+                    ? Math.round(((double) reworkCount / affectedProc) * 100.0) / 100.0
+                    : 0.0;
+                double contributionPct = finalTotalReworkOccurrences > 0
+                    ? Math.round(((double) reworkCount / finalTotalReworkOccurrences * 100.0) * 100.0) / 100.0
+                    : 0.0;
+
+                return new ActivityReworkResponse(
+                    activity,
+                    totalExec,
+                    reworkCount,
+                    affectedProc,
+                    avgPerAffected,
+                    contributionPct
+                );
+            })
+            .sorted(Comparator.comparing(ActivityReworkResponse::reworkOccurrences).reversed()
+                .thenComparing(ActivityReworkResponse::totalExecutionCount, Comparator.reverseOrder()))
+            .toList();
+
+        return new ReworkAnalyticsSummaryResponse(
+            processType != null ? processType : "ALL_TYPES",
+            totalCompletedProcesses,
+            reworkedProcessCount,
+            nonReworkedProcessCount,
+            reworkRate,
+            totalReworkOccurrences,
+            avgReworkPerReworked,
+            avgCycleTimeWithReworkMs,
+            avgCycleTimeWithoutReworkMs,
+            minCycleTimeWithReworkMs,
+            maxCycleTimeWithReworkMs,
+            minCycleTimeWithoutReworkMs,
+            maxCycleTimeWithoutReworkMs,
+            cycleTimeDifferenceMs,
+            activityResponses,
+            from,
+            to
+        );
+    }
+
+    public ProcessReworkDetailResponse getProcessReworkDetail(UUID processInstanceId) {
+        ProcessInstance instance = instanceRepository.findById(processInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("ProcessInstance not found with ID: " + processInstanceId));
+
+        List<String> sequence = extractActivitySequence(instance);
+        String variantKey = String.join(">", sequence.isEmpty() ? List.of("UNKNOWN_STAGE") : sequence);
+
+        Map<String, Long> activityCounts = sequence.stream()
+            .collect(Collectors.groupingBy(s -> s, LinkedHashMap::new, Collectors.counting()));
+
+        Map<String, Long> repeatedActivities = new LinkedHashMap<>();
+        long totalReworkOccurrences = 0;
+
+        for (Map.Entry<String, Long> entry : activityCounts.entrySet()) {
+            long rework = Math.max(0L, entry.getValue() - 1L);
+            if (rework > 0) {
+                repeatedActivities.put(entry.getKey(), rework);
+                totalReworkOccurrences += rework;
+            }
+        }
+
+        boolean hasRework = totalReworkOccurrences > 0;
+
+        Long cycleTimeMs = null;
+        if (instance.getStartedAt() != null && instance.getCompletedAt() != null) {
+            cycleTimeMs = Math.max(0L, Duration.between(instance.getStartedAt(), instance.getCompletedAt()).toMillis());
+        }
+
+        return new ProcessReworkDetailResponse(
+            instance.getId(),
+            instance.getBusinessKey(),
+            instance.getProcessType(),
+            instance.getStatus(),
+            variantKey,
+            hasRework,
+            totalReworkOccurrences,
+            repeatedActivities,
+            cycleTimeMs,
+            instance.getCompletedAt()
+        );
+    }
+
+    private List<String> extractActivitySequence(ProcessInstance instance) {
+        List<ProcessStep> sortedSteps = instance.getSteps().stream()
+            .sorted(Comparator.comparing(ProcessStep::getStartedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+            .toList();
+
+        List<String> sequence = sortedSteps.stream()
+            .map(ProcessStep::getStepName)
+            .filter(Objects::nonNull)
+            .toList();
+
+        if (sequence.isEmpty()) {
+            List<ProcessEvent> events = eventRepository.findByProcessInstanceIdOrderByTimestampAsc(instance.getId());
+            sequence = events.stream()
+                .map(ProcessEvent::getEventType)
+                .filter(Objects::nonNull)
+                .toList();
+        }
+        return sequence;
+    }
+
     private Instant resolveEffectiveCompletedAt(ProcessStep step, int index, List<ProcessStep> sortedSteps, ProcessInstance instance) {
         Instant startedAt = step.getStartedAt();
         Instant completedAt = step.getCompletedAt();

@@ -81,4 +81,20 @@ public class ProcessAnalyticsController {
         ProcessVariantResponse variant = analyticsService.getVariantByKey(variantKey, processType, from, to);
         return ResponseEntity.ok(variant);
     }
+
+    @GetMapping("/rework")
+    public ResponseEntity<ReworkAnalyticsSummaryResponse> getReworkAnalytics(
+        @RequestParam(required = false) String processType,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+
+        ReworkAnalyticsSummaryResponse reworkSummary = analyticsService.getReworkAnalyticsSummary(processType, from, to);
+        return ResponseEntity.ok(reworkSummary);
+    }
+
+    @GetMapping("/rework/{processId}")
+    public ResponseEntity<ProcessReworkDetailResponse> getProcessReworkDetail(@PathVariable UUID processId) {
+        ProcessReworkDetailResponse reworkDetail = analyticsService.getProcessReworkDetail(processId);
+        return ResponseEntity.ok(reworkDetail);
+    }
 }

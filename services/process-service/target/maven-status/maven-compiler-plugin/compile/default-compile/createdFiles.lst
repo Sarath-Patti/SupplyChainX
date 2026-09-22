@@ -1,6 +1,7 @@
 com/supplychainx/processservice/analytics/ProcessAnalyticsController.class
 com/supplychainx/processservice/analytics/dto/ThroughputResponse.class
 com/supplychainx/processservice/exception/ResourceNotFoundException.class
+com/supplychainx/processservice/analytics/dto/ActivityReworkResponse.class
 com/supplychainx/processservice/analytics/dto/ProcessMetricsResponse.class
 com/supplychainx/processservice/controller/ProcessController.class
 com/supplychainx/processservice/analytics/dto/StageDurationStats.class
@@ -22,8 +23,10 @@ com/supplychainx/processservice/entity/ProcessInstance.class
 com/supplychainx/processservice/analytics/dto/StageMetricsResponse.class
 com/supplychainx/processservice/kafka/KafkaEventMapper.class
 com/supplychainx/processservice/dto/ErrorResponseDto.class
+com/supplychainx/processservice/analytics/dto/ProcessReworkDetailResponse.class
 com/supplychainx/processservice/dto/CreateProcessInstanceRequestDto.class
 com/supplychainx/processservice/dto/ProcessStepResponseDto.class
+com/supplychainx/processservice/analytics/dto/ReworkAnalyticsSummaryResponse.class
 com/supplychainx/processservice/entity/ProcessEvent.class
 com/supplychainx/processservice/repository/ProcessStepRepository.class
 com/supplychainx/processservice/exception/GlobalExceptionHandler.class
