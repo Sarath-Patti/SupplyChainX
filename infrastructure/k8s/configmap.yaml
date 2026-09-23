@@ -6,7 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/part-of: supplychainx
 data:
-  ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=supplychainx_db;Username=postgres;Password=postgres_dev_password"
   Kafka__BootstrapServers: "kafka:9092"
   Jwt__Issuer: "SupplyChainX"
   Jwt__Audience: "SupplyChainXApp"
@@ -15,3 +14,4 @@ data:
   POSTGRES_USER: "postgres"
   POSTGRES_PORT: "5432"
   KAFKA_PORT: "9092"
+

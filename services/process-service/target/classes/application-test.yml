@@ -1,9 +1,12 @@
 server:
   port: 0
+  shutdown: graceful
 
 spring:
   application:
     name: process-service-test
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   datasource:
     url: jdbc:h2:mem:process_service_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL

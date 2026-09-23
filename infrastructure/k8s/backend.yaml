@@ -21,6 +21,7 @@ spec:
       labels:
         app: backend
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: backend
           image: supplychainx-backend:latest
@@ -55,6 +56,11 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
 ---
 apiVersion: v1
 kind: Service

@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="2.258" tests="20" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="27"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/test-classes:/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/classes:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.3.3/spring-boot-starter-web-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter/3.3.3/spring-boot-starter-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot/3.3.3/spring-boot-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.3.3/spring-boot-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.3.3/spring-boot-starter-logging-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/Users/sarathpatti/.m2/repository/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/Users/sarathpatti/.m2/repository/org/slf4j/jul-to-slf4j/2.0.16/jul-to-slf4j-2.0.16.jar:/Users/sarathpatti/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/sarathpatti/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.3.3/spring-boot-starter-json-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.3.3/spring-boot-starter-tomcat-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.28/tomcat-embed-core-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.28/tomcat-embed-websocket-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-web/6.1.12/spring-web-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-beans/6.1.12/spring-beans-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-webmvc/6.1.12/spring-webmvc-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-expression/6.1.12/spring-expression-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-data-jpa/3.3.3/spring-boot-starter-data-jpa-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-aop/3.3.3/spring-boot-starter-aop-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/aspectj/aspectjweaver/1.9.22.1/aspectjweaver-1.9.22.1.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-jdbc/3.3.3/spring-boot-starter-jdbc-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-jdbc/6.1.12/spring-jdbc-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/hibernate/orm/hibernate-core/6.5.2.Final/hibernate-core-6.5.2.Final.jar:/Users/sarathpatti/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/sarathpatti/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/sarathpatti/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/sarathpatti/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/sarathpatti/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/Users/sarathpatti/.m2/repository/net/bytebuddy/byte-buddy/1.14.19/byte-buddy-1.14.19.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/sarathpatti/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/sarathpatti/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/sarathpatti/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/sarathpatti/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/data/spring-data-jpa/3.3.3/spring-data-jpa-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/data/spring-data-commons/3.3.3/spring-data-commons-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-orm/6.1.12/spring-orm-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-aspects/6.1.12/spring-aspects-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-validation/3.3.3/spring-boot-starter-validation-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.28/tomcat-embed-el-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/Users/sarathpatti/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-security/3.3.3/spring-boot-starter-security-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-aop/6.1.12/spring-aop-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-config/6.3.3/spring-security-config-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-web/6.3.3/spring-security-web-6.3.3.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-api/0.12.6/jjwt-api-0.12.6.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-impl/0.12.6/jjwt-impl-0.12.6.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-jackson/0.12.6/jjwt-jackson-0.12.6.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/3.3.3/spring-boot-starter-actuator-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/3.3.3/spring-boot-actuator-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-actuator/3.3.3/spring-boot-actuator-3.3.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-observation/1.13.3/micrometer-observation-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-commons/1.13.3/micrometer-commons-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-jakarta9/1.13.3/micrometer-jakarta9-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-registry-prometheus/1.13.3/micrometer-registry-prometheus-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-core/1.13.3/micrometer-core-1.13.3.jar:/Users/sarathpatti/.m2/repository/org/hdrhistogram/HdrHistogram/2.2.2/HdrHistogram-2.2.2.jar:/Users/sarathpatti/.m2/repository/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-core/1.2.1/prometheus-metrics-core-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-model/1.2.1/prometheus-metrics-model-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-config/1.2.1/prometheus-metrics-config-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-tracer-common/1.2.1/prometheus-metrics-tracer-common-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-exposition-formats/1.2.1/prometheus-metrics-exposition-formats-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-shaded-protobuf/1.2.1/prometheus-metrics-shaded-protobuf-1.2.1.jar:/Users/sarathpatti/.m2/repository/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar:/Users/sarathpatti/.m2/repository/org/checkerframework/checker-qual/3.42.0/checker-qual-3.42.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/kafka/spring-kafka/3.2.3/spring-kafka-3.2.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-context/6.1.12/spring-context-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-messaging/6.1.12/spring-messaging-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-tx/6.1.12/spring-tx-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/retry/spring-retry/2.0.8/spring-retry-2.0.8.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-clients/3.7.1/kafka-clients-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/github/luben/zstd-jni/1.5.6-3/zstd-jni-1.5.6-3.jar:/Users/sarathpatti/.m2/repository/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0.jar:/Users/sarathpatti/.m2/repository/org/xerial/snappy/snappy-java/1.1.10.5/snappy-java-1.1.10.5.jar:/Users/sarathpatti/.m2/repository/org/springframework/kafka/spring-kafka-test/3.2.3/spring-kafka-test-3.2.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-test/6.1.12/spring-test-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/apache/zookeeper/zookeeper/3.8.4/zookeeper-3.8.4.jar:/Users/sarathpatti/.m2/repository/org/apache/zookeeper/zookeeper-jute/3.8.4/zookeeper-jute-3.8.4.jar:/Users/sarathpatti/.m2/repository/org/apache/yetus/audience-annotations/0.12.0/audience-annotations-0.12.0.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-handler/4.1.112.Final/netty-handler-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-common/4.1.112.Final/netty-common-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-resolver/4.1.112.Final/netty-resolver-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-buffer/4.1.112.Final/netty-buffer-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport/4.1.112.Final/netty-transport-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.112.Final/netty-transport-native-unix-common-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-codec/4.1.112.Final/netty-codec-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-native-epoll/4.1.112.Final/netty-transport-native-epoll-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.112.Final/netty-transport-classes-epoll-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/ch/qos/logback/logback-core/1.5.7/logback-core-1.5.7.jar:/Users/sarathpatti/.m2/repository/ch/qos/logback/logback-classic/1.5.7/logback-classic-1.5.7.jar:/Users/sarathpatti/.m2/repository/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-clients/3.7.1/kafka-clients-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-metadata/3.7.1/kafka-metadata-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-raft/3.7.1/kafka-raft-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/yammer/metrics/metrics-core/2.2.0/metrics-core-2.2.0.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server-common/3.7.1/kafka-server-common-3.7.1.jar:/Users/sarathpatti/.m2/repository/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar:/Users/sarathpatti/.m2/repository/org/pcollections/pcollections/4.0.1/pcollections-4.0.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server-common/3.7.1/kafka-server-common-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-streams-test-utils/3.7.1/kafka-streams-test-utils-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-streams/3.7.1/kafka-streams-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/rocksdb/rocksdbjni/7.9.2/rocksdbjni-7.9.2.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka_2.13/3.7.1/kafka_2.13-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-group-coordinator/3.7.1/kafka-group-coordinator-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-storage-api/3.7.1/kafka-storage-api-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-tools-api/3.7.1/kafka-tools-api-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-storage/3.7.1/kafka-storage-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/github/ben-manes/caffeine/caffeine/3.1.8/caffeine-3.1.8.jar:/Users/sarathpatti/.m2/repository/com/google/errorprone/error_prone_annotations/2.21.1/error_prone_annotations-2.21.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server/3.7.1/kafka-server-3.7.1.jar:/Users/sarathpatti/.m2/repository/net/sourceforge/argparse4j/argparse4j/0.7.0/argparse4j-0.7.0.jar:/Users/sarathpatti/.m2/repository/commons-validator/commons-validator/1.7/commons-validator-1.7.jar:/Users/sarathpatti/.m2/repository/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar:/Users/sarathpatti/.m2/repository/commons-digester/commons-digester/2.1/commons-digester-2.1.jar:/Users/sarathpatti/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/module/jackson-module-scala_2.13/2.17.2/jackson-module-scala_2.13-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/thoughtworks/paranamer/paranamer/2.8/paranamer-2.8.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-csv/2.17.2/jackson-dataformat-csv-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/bitbucket/b_c/jose4j/0.9.4/jose4j-0.9.4.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/modules/scala-collection-compat_2.13/2.10.0/scala-collection-compat_2.13-2.10.0.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/modules/scala-java8-compat_2.13/1.0.2/scala-java8-compat_2.13-1.0.2.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/scala-reflect/2.13.12/scala-reflect-2.13.12.jar:/Users/sarathpatti/.m2/repository/com/typesafe/scala-logging/scala-logging_2.13/3.9.4/scala-logging_2.13-3.9.4.jar:/Users/sarathpatti/.m2/repository/io/dropwizard/metrics/metrics-core/4.1.12.1/metrics-core-4.1.12.1.jar:/Users/sarathpatti/.m2/repository/commons-cli/commons-cli/1.4/commons-cli-1.4.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka_2.13/3.7.1/kafka_2.13-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.3/junit-jupiter-api-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-commons/1.10.3/junit-platform-commons-1.10.3.jar:/Users/sarathpatti/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-launcher/1.10.3/junit-platform-launcher-1.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-engine/1.10.3/junit-platform-engine-1.10.3.jar:/Users/sarathpatti/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.3.3/spring-boot-starter-test-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-test/3.3.3/spring-boot-test-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.3.3/spring-boot-test-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/Users/sarathpatti/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/sarathpatti/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/sarathpatti/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/Users/sarathpatti/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/Users/sarathpatti/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6.jar:/Users/sarathpatti/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/Users/sarathpatti/.m2/repository/org/awaitility/awaitility/4.2.2/awaitility-4.2.2.jar:/Users/sarathpatti/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.3/junit-jupiter-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.3/junit-jupiter-params-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.3/junit-jupiter-engine-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/Users/sarathpatti/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.19/byte-buddy-agent-1.14.19.jar:/Users/sarathpatti/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/Users/sarathpatti/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/Users/sarathpatti/.m2/repository/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/Users/sarathpatti/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-core/6.1.12/spring-core-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-jcl/6.1.12/spring-jcl-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-test/6.3.3/spring-security-test-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-core/6.3.3/spring-security-core-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-crypto/6.3.3/spring-security-crypto-6.3.3.jar:"/>
+    <property name="java.vm.vendor" value="Homebrew"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="net.bytebuddy.experimental" value="true"/>
+    <property name="java.vendor.url" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="user.timezone" value="Asia/Kolkata"/>
+    <property name="org.jboss.logging.provider" value="slf4j"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="java.vm.specification.version" value="27"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="IN"/>
+    <property name="sun.boot.library.path" value="/opt/homebrew/Cellar/openjdk/27/libexec/openjdk.jdk/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/surefire/surefirebooter-20260923115221009_3.jar /Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/surefire 2026-09-23T11-52-20_949-jvmRun1 surefire-20260923115221009_1tmp surefire_0-20260923115221009_2tmp"/>
+    <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/test-classes:/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/classes:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.3.3/spring-boot-starter-web-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter/3.3.3/spring-boot-starter-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot/3.3.3/spring-boot-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.3.3/spring-boot-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.3.3/spring-boot-starter-logging-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/Users/sarathpatti/.m2/repository/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/Users/sarathpatti/.m2/repository/org/slf4j/jul-to-slf4j/2.0.16/jul-to-slf4j-2.0.16.jar:/Users/sarathpatti/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/sarathpatti/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.3.3/spring-boot-starter-json-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.3.3/spring-boot-starter-tomcat-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.28/tomcat-embed-core-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.28/tomcat-embed-websocket-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-web/6.1.12/spring-web-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-beans/6.1.12/spring-beans-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-webmvc/6.1.12/spring-webmvc-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-expression/6.1.12/spring-expression-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-data-jpa/3.3.3/spring-boot-starter-data-jpa-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-aop/3.3.3/spring-boot-starter-aop-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/aspectj/aspectjweaver/1.9.22.1/aspectjweaver-1.9.22.1.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-jdbc/3.3.3/spring-boot-starter-jdbc-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-jdbc/6.1.12/spring-jdbc-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/hibernate/orm/hibernate-core/6.5.2.Final/hibernate-core-6.5.2.Final.jar:/Users/sarathpatti/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/sarathpatti/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/sarathpatti/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/sarathpatti/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/sarathpatti/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/Users/sarathpatti/.m2/repository/net/bytebuddy/byte-buddy/1.14.19/byte-buddy-1.14.19.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/sarathpatti/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/sarathpatti/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/sarathpatti/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/sarathpatti/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/sarathpatti/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/data/spring-data-jpa/3.3.3/spring-data-jpa-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/data/spring-data-commons/3.3.3/spring-data-commons-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-orm/6.1.12/spring-orm-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-aspects/6.1.12/spring-aspects-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-validation/3.3.3/spring-boot-starter-validation-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.28/tomcat-embed-el-10.1.28.jar:/Users/sarathpatti/.m2/repository/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/Users/sarathpatti/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-security/3.3.3/spring-boot-starter-security-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-aop/6.1.12/spring-aop-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-config/6.3.3/spring-security-config-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-web/6.3.3/spring-security-web-6.3.3.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-api/0.12.6/jjwt-api-0.12.6.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-impl/0.12.6/jjwt-impl-0.12.6.jar:/Users/sarathpatti/.m2/repository/io/jsonwebtoken/jjwt-jackson/0.12.6/jjwt-jackson-0.12.6.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/3.3.3/spring-boot-starter-actuator-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/3.3.3/spring-boot-actuator-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-actuator/3.3.3/spring-boot-actuator-3.3.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-observation/1.13.3/micrometer-observation-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-commons/1.13.3/micrometer-commons-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-jakarta9/1.13.3/micrometer-jakarta9-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-registry-prometheus/1.13.3/micrometer-registry-prometheus-1.13.3.jar:/Users/sarathpatti/.m2/repository/io/micrometer/micrometer-core/1.13.3/micrometer-core-1.13.3.jar:/Users/sarathpatti/.m2/repository/org/hdrhistogram/HdrHistogram/2.2.2/HdrHistogram-2.2.2.jar:/Users/sarathpatti/.m2/repository/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-core/1.2.1/prometheus-metrics-core-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-model/1.2.1/prometheus-metrics-model-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-config/1.2.1/prometheus-metrics-config-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-tracer-common/1.2.1/prometheus-metrics-tracer-common-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-exposition-formats/1.2.1/prometheus-metrics-exposition-formats-1.2.1.jar:/Users/sarathpatti/.m2/repository/io/prometheus/prometheus-metrics-shaded-protobuf/1.2.1/prometheus-metrics-shaded-protobuf-1.2.1.jar:/Users/sarathpatti/.m2/repository/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar:/Users/sarathpatti/.m2/repository/org/checkerframework/checker-qual/3.42.0/checker-qual-3.42.0.jar:/Users/sarathpatti/.m2/repository/org/springframework/kafka/spring-kafka/3.2.3/spring-kafka-3.2.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-context/6.1.12/spring-context-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-messaging/6.1.12/spring-messaging-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-tx/6.1.12/spring-tx-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/retry/spring-retry/2.0.8/spring-retry-2.0.8.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-clients/3.7.1/kafka-clients-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/github/luben/zstd-jni/1.5.6-3/zstd-jni-1.5.6-3.jar:/Users/sarathpatti/.m2/repository/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0.jar:/Users/sarathpatti/.m2/repository/org/xerial/snappy/snappy-java/1.1.10.5/snappy-java-1.1.10.5.jar:/Users/sarathpatti/.m2/repository/org/springframework/kafka/spring-kafka-test/3.2.3/spring-kafka-test-3.2.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-test/6.1.12/spring-test-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/apache/zookeeper/zookeeper/3.8.4/zookeeper-3.8.4.jar:/Users/sarathpatti/.m2/repository/org/apache/zookeeper/zookeeper-jute/3.8.4/zookeeper-jute-3.8.4.jar:/Users/sarathpatti/.m2/repository/org/apache/yetus/audience-annotations/0.12.0/audience-annotations-0.12.0.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-handler/4.1.112.Final/netty-handler-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-common/4.1.112.Final/netty-common-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-resolver/4.1.112.Final/netty-resolver-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-buffer/4.1.112.Final/netty-buffer-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport/4.1.112.Final/netty-transport-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.112.Final/netty-transport-native-unix-common-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-codec/4.1.112.Final/netty-codec-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-native-epoll/4.1.112.Final/netty-transport-native-epoll-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.112.Final/netty-transport-classes-epoll-4.1.112.Final.jar:/Users/sarathpatti/.m2/repository/ch/qos/logback/logback-core/1.5.7/logback-core-1.5.7.jar:/Users/sarathpatti/.m2/repository/ch/qos/logback/logback-classic/1.5.7/logback-classic-1.5.7.jar:/Users/sarathpatti/.m2/repository/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-clients/3.7.1/kafka-clients-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-metadata/3.7.1/kafka-metadata-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-raft/3.7.1/kafka-raft-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/yammer/metrics/metrics-core/2.2.0/metrics-core-2.2.0.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server-common/3.7.1/kafka-server-common-3.7.1.jar:/Users/sarathpatti/.m2/repository/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar:/Users/sarathpatti/.m2/repository/org/pcollections/pcollections/4.0.1/pcollections-4.0.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server-common/3.7.1/kafka-server-common-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-streams-test-utils/3.7.1/kafka-streams-test-utils-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-streams/3.7.1/kafka-streams-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/rocksdb/rocksdbjni/7.9.2/rocksdbjni-7.9.2.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka_2.13/3.7.1/kafka_2.13-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-group-coordinator/3.7.1/kafka-group-coordinator-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-storage-api/3.7.1/kafka-storage-api-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-tools-api/3.7.1/kafka-tools-api-3.7.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-storage/3.7.1/kafka-storage-3.7.1.jar:/Users/sarathpatti/.m2/repository/com/github/ben-manes/caffeine/caffeine/3.1.8/caffeine-3.1.8.jar:/Users/sarathpatti/.m2/repository/com/google/errorprone/error_prone_annotations/2.21.1/error_prone_annotations-2.21.1.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka-server/3.7.1/kafka-server-3.7.1.jar:/Users/sarathpatti/.m2/repository/net/sourceforge/argparse4j/argparse4j/0.7.0/argparse4j-0.7.0.jar:/Users/sarathpatti/.m2/repository/commons-validator/commons-validator/1.7/commons-validator-1.7.jar:/Users/sarathpatti/.m2/repository/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar:/Users/sarathpatti/.m2/repository/commons-digester/commons-digester/2.1/commons-digester-2.1.jar:/Users/sarathpatti/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/module/jackson-module-scala_2.13/2.17.2/jackson-module-scala_2.13-2.17.2.jar:/Users/sarathpatti/.m2/repository/com/thoughtworks/paranamer/paranamer/2.8/paranamer-2.8.jar:/Users/sarathpatti/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-csv/2.17.2/jackson-dataformat-csv-2.17.2.jar:/Users/sarathpatti/.m2/repository/org/bitbucket/b_c/jose4j/0.9.4/jose4j-0.9.4.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/modules/scala-collection-compat_2.13/2.10.0/scala-collection-compat_2.13-2.10.0.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/modules/scala-java8-compat_2.13/1.0.2/scala-java8-compat_2.13-1.0.2.jar:/Users/sarathpatti/.m2/repository/org/scala-lang/scala-reflect/2.13.12/scala-reflect-2.13.12.jar:/Users/sarathpatti/.m2/repository/com/typesafe/scala-logging/scala-logging_2.13/3.9.4/scala-logging_2.13-3.9.4.jar:/Users/sarathpatti/.m2/repository/io/dropwizard/metrics/metrics-core/4.1.12.1/metrics-core-4.1.12.1.jar:/Users/sarathpatti/.m2/repository/commons-cli/commons-cli/1.4/commons-cli-1.4.jar:/Users/sarathpatti/.m2/repository/org/apache/kafka/kafka_2.13/3.7.1/kafka_2.13-3.7.1-test.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.3/junit-jupiter-api-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-commons/1.10.3/junit-platform-commons-1.10.3.jar:/Users/sarathpatti/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-launcher/1.10.3/junit-platform-launcher-1.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/platform/junit-platform-engine/1.10.3/junit-platform-engine-1.10.3.jar:/Users/sarathpatti/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.3.3/spring-boot-starter-test-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-test/3.3.3/spring-boot-test-3.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.3.3/spring-boot-test-autoconfigure-3.3.3.jar:/Users/sarathpatti/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/Users/sarathpatti/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/sarathpatti/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/sarathpatti/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/Users/sarathpatti/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/Users/sarathpatti/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6.jar:/Users/sarathpatti/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/Users/sarathpatti/.m2/repository/org/awaitility/awaitility/4.2.2/awaitility-4.2.2.jar:/Users/sarathpatti/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.3/junit-jupiter-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.3/junit-jupiter-params-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.3/junit-jupiter-engine-5.10.3.jar:/Users/sarathpatti/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/Users/sarathpatti/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.19/byte-buddy-agent-1.14.19.jar:/Users/sarathpatti/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/Users/sarathpatti/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/Users/sarathpatti/.m2/repository/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/Users/sarathpatti/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-core/6.1.12/spring-core-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/springframework/spring-jcl/6.1.12/spring-jcl-6.1.12.jar:/Users/sarathpatti/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-test/6.3.3/spring-security-test-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-core/6.3.3/spring-security-core-6.3.3.jar:/Users/sarathpatti/.m2/repository/org/springframework/security/spring-security-crypto/6.3.3/spring-security-crypto-6.3.3.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/Users/sarathpatti"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2026-09-15"/>
+    <property name="java.home" value="/opt/homebrew/Cellar/openjdk/27/libexec/openjdk.jdk/Contents/Home"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="FILE_LOG_CHARSET" value="UTF-8"/>
+    <property name="java.awt.headless" value="true"/>
+    <property name="apple.awt.application.name" value="ForkedBooter"/>
+    <property name="surefire.real.class.path" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service/target/surefire/surefirebooter-20260923115221009_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="java.runtime.version" value="27"/>
+    <property name="user.name" value="sarathpatti"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="26.6.2"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Homebrew"/>
+    <property name="localRepository" value="/Users/sarathpatti/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="java.io.tmpdir" value="/var/folders/jn/9ttc_7195z76qrq88fw90bt00000gn/T/"/>
+    <property name="com.zaxxer.hikari.pool_number" value="2"/>
+    <property name="java.version" value="27"/>
+    <property name="user.dir" value="/Users/sarathpatti/Documents/SupplyChainX/services/process-service"/>
+    <property name="os.arch" value="aarch64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="PID" value="86149"/>
+    <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/sarathpatti/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Homebrew"/>
+    <property name="java.vm.version" value="27"/>
+    <property name="stdin.encoding" value="UTF-8"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="java.class.version" value="71.0"/>
+    <property name="CONSOLE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [service=process-service, correlationId=%X{correlationId:-none}, processId=%X{processId:-none}, eventId=%X{eventId:-none}] - %msg%n"/>
+    <property name="LOGGED_APPLICATION_NAME" value="[process-service-test] "/>
+  </properties>
+  <testcase name="unexpectedExceptionMapping_returns500WithoutStackTrace" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.265">
+    <system-out><![CDATA[2026-09-23 11:52:25.671 [main] INFO  o.s.t.c.s.AnnotationConfigContextLoaderUtils [service=process-service, correlationId=none, processId=none, eventId=none] - Could not detect default configuration classes for test class [com.supplychainx.processservice.security.SecurityAndObservabilityTests]: SecurityAndObservabilityTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-23 11:52:25.687 [main] INFO  o.s.b.t.c.SpringBootTestContextBootstrapper [service=process-service, correlationId=none, processId=none, eventId=none] - Found @SpringBootConfiguration com.supplychainx.processservice.ProcessServiceApplication for test class com.supplychainx.processservice.security.SecurityAndObservabilityTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.3)
+
+2026-09-23 11:52:25.722 [main] INFO  c.s.p.s.SecurityAndObservabilityTests [service=process-service, correlationId=none, processId=none, eventId=none] - Starting SecurityAndObservabilityTests using Java 27 with PID 86149 (started by sarathpatti in /Users/sarathpatti/Documents/SupplyChainX/services/process-service)
+2026-09-23 11:52:25.722 [main] INFO  c.s.p.s.SecurityAndObservabilityTests [service=process-service, correlationId=none, processId=none, eventId=none] - The following 1 profile is active: "test"
+2026-09-23 11:52:25.905 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate [service=process-service, correlationId=none, processId=none, eventId=none] - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-23 11:52:25.921 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate [service=process-service, correlationId=none, processId=none, eventId=none] - Finished Spring Data repository scanning in 15 ms. Found 4 JPA repository interfaces.
+2026-09-23 11:52:25.985 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  org.apache.kafka.clients.Metadata [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Cluster ID: 5L6g3nShT-eMCtK--X86sw
+2026-09-23 11:52:25.986 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Discovered group coordinator localhost:9092 (id: 2147483646 rack: null)
+2026-09-23 11:52:25.988 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] (Re-)joining group
+2026-09-23 11:52:26.010 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Request joining group due to: need to re-join with the given member-id: consumer-supplychainx-process-analytics-group-1-5a67e0f7-32f0-442b-b34b-80d054e6bf37
+2026-09-23 11:52:26.011 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] (Re-)joining group
+2026-09-23 11:52:26.302 [main] INFO  o.h.jpa.internal.util.LogHelper [service=process-service, correlationId=none, processId=none, eventId=none] - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-09-23 11:52:26.303 [main] INFO  o.h.c.i.RegionFactoryInitiator [service=process-service, correlationId=none, processId=none, eventId=none] - HHH000026: Second-level cache disabled
+2026-09-23 11:52:26.321 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo [service=process-service, correlationId=none, processId=none, eventId=none] - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-23 11:52:26.326 [main] INFO  com.zaxxer.hikari.HikariDataSource [service=process-service, correlationId=none, processId=none, eventId=none] - HikariPool-2 - Starting...
+2026-09-23 11:52:26.330 [main] INFO  com.zaxxer.hikari.pool.HikariPool [service=process-service, correlationId=none, processId=none, eventId=none] - HikariPool-2 - Added connection conn18: url=jdbc:h2:mem:process_service_db user=SA
+2026-09-23 11:52:26.330 [main] INFO  com.zaxxer.hikari.HikariDataSource [service=process-service, correlationId=none, processId=none, eventId=none] - HikariPool-2 - Start completed.
+2026-09-23 11:52:26.331 [main] WARN  org.hibernate.orm.deprecation [service=process-service, correlationId=none, processId=none, eventId=none] - HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-23 11:52:26.437 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator [service=process-service, correlationId=none, processId=none, eventId=none] - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+Hibernate: 
+    drop table if exists process_events cascade 
+Hibernate: 
+    drop table if exists process_instances cascade 
+Hibernate: 
+    drop table if exists process_steps cascade 
+Hibernate: 
+    create table process_events (
+        created_at timestamp(6) with time zone not null,
+        timestamp timestamp(6) with time zone not null,
+        event_id uuid not null unique,
+        id uuid not null,
+        process_instance_id uuid not null,
+        event_type varchar(128) not null,
+        payload TEXT,
+        primary key (id)
+    )
+Hibernate: 
+    create table process_instances (
+        completed_at timestamp(6) with time zone,
+        created_at timestamp(6) with time zone not null,
+        started_at timestamp(6) with time zone not null,
+        updated_at timestamp(6) with time zone,
+        id uuid not null,
+        status varchar(32) not null,
+        process_type varchar(64) not null,
+        business_key varchar(128) not null unique,
+        primary key (id)
+    )
+Hibernate: 
+    create table process_steps (
+        completed_at timestamp(6) with time zone,
+        created_at timestamp(6) with time zone not null,
+        started_at timestamp(6) with time zone not null,
+        id uuid not null,
+        process_instance_id uuid not null,
+        status varchar(32) not null,
+        step_name varchar(128) not null,
+        primary key (id)
+    )
+Hibernate: 
+    create index idx_process_event_instance_timestamp 
+       on process_events (process_instance_id, timestamp)
+Hibernate: 
+    create index idx_process_event_type 
+       on process_events (event_type)
+Hibernate: 
+    create index idx_process_instance_status 
+       on process_instances (status)
+Hibernate: 
+    create index idx_process_instance_process_type 
+       on process_instances (process_type)
+Hibernate: 
+    create index idx_process_instance_started_at 
+       on process_instances (started_at)
+Hibernate: 
+    create index idx_process_instance_completed_at 
+       on process_instances (completed_at)
+Hibernate: 
+    create index idx_process_instance_type_started 
+       on process_instances (process_type, started_at)
+Hibernate: 
+    create index idx_process_step_instance 
+       on process_steps (process_instance_id)
+Hibernate: 
+    create index idx_process_step_name 
+       on process_steps (step_name)
+Hibernate: 
+    create index idx_process_step_completed_at 
+       on process_steps (completed_at)
+Hibernate: 
+    alter table if exists process_events 
+       add constraint FKeqo93k1syt3dmuau7kxdcod9r 
+       foreign key (process_instance_id) 
+       references process_instances
+Hibernate: 
+    alter table if exists process_steps 
+       add constraint FKn4lf1o1cs7g7ahgikqnqphfom 
+       foreign key (process_instance_id) 
+       references process_instances
+2026-09-23 11:52:26.446 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean [service=process-service, correlationId=none, processId=none, eventId=none] - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-23 11:52:26.842 [main] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration [service=process-service, correlationId=none, processId=none, eventId=none] - 
+
+Using generated security password: 142f9fb1-161a-43b7-ace0-06c0a3b22d17
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-09-23 11:52:26.844 [main] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer [service=process-service, correlationId=none, processId=none, eventId=none] - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-09-23 11:52:27.020 [main] INFO  o.s.b.a.e.web.EndpointLinksResolver [service=process-service, correlationId=none, processId=none, eventId=none] - Exposing 3 endpoints beneath base path '/actuator'
+2026-09-23 11:52:27.279 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Successfully joined group with generation Generation{generationId=47, memberId='consumer-supplychainx-process-analytics-group-1-5a67e0f7-32f0-442b-b34b-80d054e6bf37', protocol='range'}
+2026-09-23 11:52:27.281 [main] INFO  o.s.b.t.m.w.SpringBootMockServletContext [service=process-service, correlationId=none, processId=none, eventId=none] - Initializing Spring TestDispatcherServlet ''
+2026-09-23 11:52:27.281 [main] INFO  o.s.t.w.s.TestDispatcherServlet [service=process-service, correlationId=none, processId=none, eventId=none] - Initializing Servlet ''
+2026-09-23 11:52:27.283 [main] INFO  o.s.t.w.s.TestDispatcherServlet [service=process-service, correlationId=none, processId=none, eventId=none] - Completed initialization in 2 ms
+2026-09-23 11:52:27.294 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Successfully synced group in generation Generation{generationId=47, memberId='consumer-supplychainx-process-analytics-group-1-5a67e0f7-32f0-442b-b34b-80d054e6bf37', protocol='range'}
+2026-09-23 11:52:27.296 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Notifying assignor about the new Assignment(partitions=[supplychainx.product.events-2, supplychainx.inventory.events-2, supplychainx.warehouse.events-2])
+2026-09-23 11:52:27.298 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerRebalanceListenerInvoker [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Adding newly assigned partitions: supplychainx.inventory.events-2, supplychainx.product.events-2, supplychainx.warehouse.events-2
+2026-09-23 11:52:27.305 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Found no committed offset for partition supplychainx.warehouse.events-2
+2026-09-23 11:52:27.305 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Found no committed offset for partition supplychainx.inventory.events-2
+2026-09-23 11:52:27.307 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.internals.ConsumerUtils [service=process-service, correlationId=none, processId=none, eventId=none] - Setting offset for partition supplychainx.product.events-2 to the committed offset FetchPosition{offset=20, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[localhost:9092 (id: 1 rack: null)], epoch=4}}
+2026-09-23 11:52:27.321 [main] INFO  o.a.k.c.consumer.ConsumerConfig [service=process-service, correlationId=none, processId=none, eventId=none] - ConsumerConfig values: 
+	allow.auto.create.topics = true
+	auto.commit.interval.ms = 5000
+	auto.include.jmx.reporter = true
+	auto.offset.reset = earliest
+	bootstrap.servers = [localhost:9092]
+	check.crcs = true
+	client.dns.lookup = use_all_dns_ips
+	client.id = consumer-supplychainx-process-analytics-group-2
+	client.rack = 
+	connections.max.idle.ms = 540000
+	default.api.timeout.ms = 60000
+	enable.auto.commit = false
+	enable.metrics.push = true
+	exclude.internal.topics = true
+	fetch.max.bytes = 52428800
+	fetch.max.wait.ms = 500
+	fetch.min.bytes = 1
+	group.id = supplychainx-process-analytics-group
+	group.instance.id = null
+	group.protocol = classic
+	group.remote.assignor = null
+	heartbeat.interval.ms = 3000
+	interceptor.classes = []
+	internal.leave.group.on.close = true
+	internal.throw.on.fetch.stable.offset.unsupported = false
+	isolation.level = read_uncommitted
+	key.deserializer = class org.apache.kafka.common.serialization.StringDeserializer
+	max.partition.fetch.bytes = 1048576
+	max.poll.interval.ms = 300000
+	max.poll.records = 500
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	partition.assignment.strategy = [class org.apache.kafka.clients.consumer.RangeAssignor, class org.apache.kafka.clients.consumer.CooperativeStickyAssignor]
+	receive.buffer.bytes = 65536
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	request.timeout.ms = 30000
+	retry.backoff.max.ms = 1000
+	retry.backoff.ms = 100
+	sasl.client.callback.handler.class = null
+	sasl.jaas.config = null
+	sasl.kerberos.kinit.cmd = /usr/bin/kinit
+	sasl.kerberos.min.time.before.relogin = 60000
+	sasl.kerberos.service.name = null
+	sasl.kerberos.ticket.renew.jitter = 0.05
+	sasl.kerberos.ticket.renew.window.factor = 0.8
+	sasl.login.callback.handler.class = null
+	sasl.login.class = null
+	sasl.login.connect.timeout.ms = null
+	sasl.login.read.timeout.ms = null
+	sasl.login.refresh.buffer.seconds = 300
+	sasl.login.refresh.min.period.seconds = 60
+	sasl.login.refresh.window.factor = 0.8
+	sasl.login.refresh.window.jitter = 0.05
+	sasl.login.retry.backoff.max.ms = 10000
+	sasl.login.retry.backoff.ms = 100
+	sasl.mechanism = GSSAPI
+	sasl.oauthbearer.clock.skew.seconds = 30
+	sasl.oauthbearer.expected.audience = null
+	sasl.oauthbearer.expected.issuer = null
+	sasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100
+	sasl.oauthbearer.jwks.endpoint.url = null
+	sasl.oauthbearer.scope.claim.name = scope
+	sasl.oauthbearer.sub.claim.name = sub
+	sasl.oauthbearer.token.endpoint.url = null
+	security.protocol = PLAINTEXT
+	security.providers = null
+	send.buffer.bytes = 131072
+	session.timeout.ms = 45000
+	socket.connection.setup.timeout.max.ms = 30000
+	socket.connection.setup.timeout.ms = 10000
+	ssl.cipher.suites = null
+	ssl.enabled.protocols = [TLSv1.2, TLSv1.3]
+	ssl.endpoint.identification.algorithm = https
+	ssl.engine.factory.class = null
+	ssl.key.password = null
+	ssl.keymanager.algorithm = SunX509
+	ssl.keystore.certificate.chain = null
+	ssl.keystore.key = null
+	ssl.keystore.location = null
+	ssl.keystore.password = null
+	ssl.keystore.type = JKS
+	ssl.protocol = TLSv1.3
+	ssl.provider = null
+	ssl.secure.random.implementation = null
+	ssl.trustmanager.algorithm = PKIX
+	ssl.truststore.certificates = null
+	ssl.truststore.location = null
+	ssl.truststore.password = null
+	ssl.truststore.type = JKS
+	value.deserializer = class org.apache.kafka.common.serialization.StringDeserializer
+
+2026-09-23 11:52:27.321 [main] INFO  o.a.k.c.t.i.KafkaMetricsCollector [service=process-service, correlationId=none, processId=none, eventId=none] - initializing Kafka metrics collector
+2026-09-23 11:52:27.326 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.SubscriptionState [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Resetting offset for partition supplychainx.warehouse.events-2 to position FetchPosition{offset=0, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[localhost:9092 (id: 1 rack: null)], epoch=4}}.
+2026-09-23 11:52:27.326 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.SubscriptionState [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-1, groupId=supplychainx-process-analytics-group] Resetting offset for partition supplychainx.inventory.events-2 to position FetchPosition{offset=0, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[localhost:9092 (id: 1 rack: null)], epoch=4}}.
+2026-09-23 11:52:27.326 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.s.k.l.KafkaMessageListenerContainer [service=process-service, correlationId=none, processId=none, eventId=none] - supplychainx-process-analytics-group: partitions assigned: [supplychainx.inventory.events-2, supplychainx.product.events-2, supplychainx.warehouse.events-2]
+2026-09-23 11:52:27.327 [main] INFO  o.a.kafka.common.utils.AppInfoParser [service=process-service, correlationId=none, processId=none, eventId=none] - Kafka version: 3.7.1
+2026-09-23 11:52:27.327 [main] INFO  o.a.kafka.common.utils.AppInfoParser [service=process-service, correlationId=none, processId=none, eventId=none] - Kafka commitId: e2494e6ffb89f828
+2026-09-23 11:52:27.327 [main] INFO  o.a.kafka.common.utils.AppInfoParser [service=process-service, correlationId=none, processId=none, eventId=none] - Kafka startTimeMs: 1790144547327
+2026-09-23 11:52:27.328 [main] INFO  o.a.k.c.c.i.LegacyKafkaConsumer [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] Subscribed to topic(s): supplychainx.product.events, supplychainx.warehouse.events, supplychainx.inventory.events
+2026-09-23 11:52:27.334 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  org.apache.kafka.clients.Metadata [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] Cluster ID: 5L6g3nShT-eMCtK--X86sw
+2026-09-23 11:52:27.335 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] Discovered group coordinator localhost:9092 (id: 2147483646 rack: null)
+2026-09-23 11:52:27.335 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] (Re-)joining group
+2026-09-23 11:52:27.339 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] Request joining group due to: need to re-join with the given member-id: consumer-supplychainx-process-analytics-group-2-87672142-7b45-4952-bf00-0ee03c698851
+2026-09-23 11:52:27.339 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO  o.a.k.c.c.i.ConsumerCoordinator [service=process-service, correlationId=none, processId=none, eventId=none] - [Consumer clientId=consumer-supplychainx-process-analytics-group-2, groupId=supplychainx-process-analytics-group] (Re-)joining group
+2026-09-23 11:52:27.348 [main] INFO  c.s.p.s.SecurityAndObservabilityTests [service=process-service, correlationId=none, processId=none, eventId=none] - Started SecurityAndObservabilityTests in 1.657 seconds (process running for 6.28)
+2026-09-23 11:52:27.577 [main] ERROR c.s.p.e.GlobalExceptionHandler [service=process-service, correlationId=45b1c202-f466-4576-b04c-7d1f003a3f8f, processId=none, eventId=none] - Internal server error occurred [path=/api/v1/analytics/processes/f910d10d-9b61-458c-950d-7e2fb9409432]: Database failure internal exception
+java.lang.RuntimeException: Database failure internal exception
+	at com.supplychainx.processservice.analytics.ProcessAnalyticsService.getProcessMetrics(ProcessAnalyticsService.java:36)
+	at com.supplychainx.processservice.analytics.ProcessAnalyticsController.getProcessMetrics(ProcessAnalyticsController.java:30)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:355)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:716)
+	at com.supplychainx.processservice.analytics.ProcessAnalyticsController$$SpringCGLIB$$0.getProcessMetrics(<generated>)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:188)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:926)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:831)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:108)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.ObservationFilterChainDecorator$FilterObservation$SimpleFilterObservation.lambda$wrap$1(ObservationFilterChainDecorator.java:479)
+	at org.springframework.security.web.ObservationFilterChainDecorator$AroundFilterObservation$SimpleAroundFilterObservation.lambda$wrap$1(ObservationFilterChainDecorator.java:340)
+	at org.springframework.security.web.ObservationFilterChainDecorator.lambda$wrapSecured$0(ObservationFilterChainDecorator.java:82)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:128)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:131)
+	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:85)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at com.supplychainx.processservice.security.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:38)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at com.supplychainx.processservice.security.CorrelationIdFilter.doFilterInternal(CorrelationIdFilter.java:41)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$AroundFilterObservation$SimpleAroundFilterObservation.lambda$wrap$0(ObservationFilterChainDecorator.java:323)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:224)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113)
+	at org.springframework.web.servlet.handler.HandlerMappingIntrospector.lambda$createCacheFilter$3(HandlerMappingIntrospector.java:195)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113)
+	at org.springframework.web.filter.CompositeFilter.doFilter(CompositeFilter.java:74)
+	at org.springframework.security.config.annotation.web.configuration.WebMvcSecurityConfiguration$CompositeFilterChainProxy.doFilter(WebMvcSecurityConfiguration.java:230)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:113)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:151)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201)
+	at com.supplychainx.processservice.security.SecurityAndObservabilityTests.unexpectedExceptionMapping_returns500WithoutStackTrace(SecurityAndObservabilityTests.java:178)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:728)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:218)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:214)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:139)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+]]></system-out>
+  </testcase>
+  <testcase name="validAuthenticatedUser_analyticsRequest_succeeds" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.094"/>
+  <testcase name="stackTraceAndSecretsNotExposed" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.01"/>
+  <testcase name="correctAdminRole_adminEndpoint_succeeds" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.026"/>
+  <testcase name="insufficientRole_adminEndpoint_returns403" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.005"/>
+  <testcase name="invalidOrExpiredJwt_returns401" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.003">
+    <system-out><![CDATA[2026-09-23 11:52:27.761 [main] WARN  c.s.p.security.JwtTokenProvider [service=process-service, correlationId=815ab42c-2497-47e0-bea1-277adac261ad, processId=none, eventId=none] - Malformed JWT token
+]]></system-out>
+  </testcase>
+  <testcase name="missingCorrelationId_generated" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.03"/>
+  <testcase name="livenessEndpoint_behavesCorrectly" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.006"/>
+  <testcase name="validationFailure_returns400" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.059">
+    <system-out><![CDATA[2026-09-23 11:52:27.857 [main] WARN  c.s.p.e.GlobalExceptionHandler [service=process-service, correlationId=28fefdb2-2b37-4f34-bdbf-e90e0afddcbd, processId=none, eventId=none] - Validation failed [path=/api/v1/processes]: status: status is required, businessKey: businessKey is required, processType: processType is required
+]]></system-out>
+  </testcase>
+  <testcase name="readinessEndpoint_behavesCorrectly" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.005"/>
+  <testcase name="responseContainsCorrelationIdHeader" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.002"/>
+  <testcase name="suppliedCorrelationId_preserved" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.005"/>
+  <testcase name="healthEndpoint_succeeds" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.006"/>
+  <testcase name="malformedRequest_returns400" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.006">
+    <system-out><![CDATA[2026-09-23 11:52:27.885 [main] WARN  c.s.p.e.GlobalExceptionHandler [service=process-service, correlationId=ebbffb5a-c615-49c1-a371-690305749815, processId=none, eventId=none] - Type mismatch [path=/api/v1/analytics/processes/not-a-valid-uuid]: Parameter 'id' value 'not-a-valid-uuid' is invalid
+]]></system-out>
+  </testcase>
+  <testcase name="responseContainsCorrelationId" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.002"/>
+  <testcase name="unauthenticatedRequest_returns401" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.006"/>
+  <testcase name="logsContainCorrelationContext" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.004"/>
+  <testcase name="resourceNotFound_returns404" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.01">
+    <system-out><![CDATA[2026-09-23 11:52:27.906 [main] WARN  c.s.p.e.GlobalExceptionHandler [service=process-service, correlationId=fc78a586-8af8-4675-8a5e-02eb72e0af34, processId=none, eventId=none] - Resource not found [path=/api/v1/analytics/processes/6b216415-89d3-4850-94a0-d59d49387258]: ProcessInstance not found with ID: 6b216415-89d3-4850-94a0-d59d49387258
+]]></system-out>
+  </testcase>
+  <testcase name="sensitiveConfiguration_notExposedInHealth" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.006"/>
+  <testcase name="missingAuthorizationHeader_returns401" classname="com.supplychainx.processservice.security.SecurityAndObservabilityTests" time="0.005"/>
+</testsuite>

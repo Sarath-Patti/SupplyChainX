@@ -1,0 +1,27 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  namespace: supplychainx
+  labels:
+    app: backend
+    app.kubernetes.io/part-of: supplychainx
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: process-service-pdb
+  namespace: supplychainx
+  labels:
+    app: process-service
+    app.kubernetes.io/part-of: supplychainx
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: process-service

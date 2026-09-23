@@ -10,4 +10,7 @@ resources:
   - postgres.yaml
   - kafka.yaml
   - backend.yaml
+  - process-service.yaml
   - frontend.yaml
+  - hpa.yaml
+  - pdb.yaml

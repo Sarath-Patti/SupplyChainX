@@ -80,6 +80,8 @@ spec:
                 - supplychainx_db
             initialDelaySeconds: 10
             periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:

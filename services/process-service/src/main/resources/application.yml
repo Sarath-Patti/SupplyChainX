@@ -1,9 +1,12 @@
 server:
   port: ${PORT:8081}
+  shutdown: graceful
 
 spring:
   application:
     name: process-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:supplychainx_db}

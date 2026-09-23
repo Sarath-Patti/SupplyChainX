@@ -1,7 +1,7 @@
 # SupplyChainX — Process Analytics Service (`process-service`)
 
-**Version**: `v2.4 — Enterprise Security & Observability`  
-**Technology**: Java 21 / Spring Boot 3.3.3 / Spring Security 6 / Spring Data JPA / Spring Kafka / PostgreSQL / Micrometer / SLF4J
+**Version**: `v2.5 — Kubernetes Production Deployment Hardening`  
+**Technology**: Java 21 / Spring Boot 3.3.3 / Spring Security 6 / Spring Data JPA / Spring Kafka / PostgreSQL / Micrometer / SLF4J / Kubernetes
 
 ---
 
