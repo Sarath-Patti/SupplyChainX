@@ -1,32 +1,32 @@
 # SupplyChainX — Process Analytics Service (`process-service`)
 
-**Version**: `v2.3 — Process Conformance Analysis`  
-**Technology**: Java 21 / Spring Boot 3.3.3 / Spring Data JPA / Spring Kafka / PostgreSQL
+**Version**: `v2.4 — Enterprise Security & Observability`  
+**Technology**: Java 21 / Spring Boot 3.3.3 / Spring Security 6 / Spring Data JPA / Spring Kafka / PostgreSQL / Micrometer / SLF4J
 
 ---
 
 ## Purpose & Architecture Role
 
-`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, process variant analysis, rework detection, and process conformance analysis for SupplyChainX enterprise operations.
+`process-service` is a dedicated Java Spring Boot microservice designed to provide high-throughput process analytics, workflow instance reconstruction, step-level tracking, deterministic bottleneck detection, process variant analysis, rework detection, process conformance analysis, enterprise security (Spring Security + JWT + RBAC), and production observability for SupplyChainX enterprise operations.
 
 In the polyglot SupplyChainX architecture:
-- **C# / .NET 8 Web API** (`backend/`): Core transactional operations (Products, Warehouses, Inventory, RBAC, AI Copilot, MCP Server).
-- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, workflow state reconstruction, step execution tracking, process variant discovery, rework analysis, deterministic process conformance analysis, and historical event persistence.
+- **C# / .NET 8 Web API** (`backend/`): Core transactional operations (Products, Warehouses, Inventory, RBAC, AI Copilot, MCP Server, JWT Token Generation).
+- **Java Spring Boot Microservice** (`services/process-service/`): Asynchronous process analytics engine, stateless JWT authentication, RBAC authorization (`ADMIN`, `ANALYST`, `USER`), request correlation tracing (`X-Correlation-ID` & MDC context), Spring Boot Actuator health/metrics probes, and event processing.
 - **PostgreSQL**: Shared relational storage with indexed tables (`process_instances`, `process_events`, `process_steps`).
 - **Apache Kafka**: Primary domain event bus consumed asynchronously by `process-service`.
 
 ```text
-Kafka (supplychainx.*.events)
+HTTP Client / API Request (Header: Authorization Bearer JWT, X-Correlation-ID)
   ↓
-ProcessEventConsumer (@KafkaListener)
+CorrelationIdFilter (MDC Population & Response Header Attachment)
   ↓
-ProcessService (State Reconstruction & Idempotent Persistence)
+JwtAuthenticationFilter (HMAC-SHA256 Token Validation & Role Mapping)
+  ↓
+Spring Security 6 (Authorization Checks: ADMIN, ANALYST, USER)
+  ↓
+Process Analytics Controllers & Micrometer Metrics Registry
   ↓
 PostgreSQL (Indexed Relational Storage)
-  ↓
-Process Analytics Engine (ProcessAnalyticsService)
-  ↓
-REST API (/api/v1/analytics/*)
 ```
 
 ---
@@ -41,128 +41,150 @@ services/process-service/
     ├── main/
     │   ├── java/com/supplychainx/processservice/
     │   │   ├── ProcessServiceApplication.java       # Spring Boot Application Entrypoint
+    │   │   ├── security/                            # Enterprise Security & Correlation Layer
+    │   │   │   ├── SecurityConfig.java              # Spring Security 6 FilterChain & Authorization Rules
+    │   │   │   ├── JwtTokenProvider.java            # JWT Signature Validation & Role Authority Extractor
+    │   │   │   ├── JwtAuthenticationFilter.java     # Stateless Bearer Token Interceptor
+    │   │   │   ├── CorrelationIdFilter.java         # Request Correlation Header & MDC Context Filter
+    │   │   │   ├── CustomAuthenticationEntryPoint.java # Standardized 401 Unauthorized Handler
+    │   │   │   └── CustomAccessDeniedHandler.java   # Standardized 403 Forbidden Handler
+    │   │   ├── metrics/                             # Application Metrics & Micrometer Layer
+    │   │   │   └── ProcessAnalyticsMetrics.java     # Low-Cardinality Counter & Timer Instruments
     │   │   ├── analytics/                           # Process Analytics & Conformance Engine Layer
     │   │   │   ├── ProcessAnalyticsController.java  # REST Controller (/api/v1/analytics/*)
     │   │   │   ├── ProcessAnalyticsService.java     # Metrics, Variant, Rework & Conformance Logic
     │   │   │   ├── ProcessAnalyticsRepository.java  # Custom Specification & Aggregation Queries
     │   │   │   └── dto/
-    │   │   │       ├── ProcessMetricsResponse.java  # Single Process Instance Analytics DTO
-    │   │   │       ├── StageMetricsResponse.java    # Stage Breakdown DTO
-    │   │   │       ├── ProcessAnalyticsSummaryResponse.java # Aggregate Summary DTO
-    │   │   │       ├── ThroughputResponse.java       # Process Throughput Metrics DTO
-    │   │   │       ├── BottleneckResponse.java       # Stage Bottleneck Metrics DTO
-    │   │   │       ├── ProcessVariantResponse.java   # Process Variant Analysis DTO
-    │   │   │       ├── ActivityReworkResponse.java   # Activity-level Rework Analysis DTO
-    │   │   │       ├── ReworkAnalyticsSummaryResponse.java # Rework Summary DTO
-    │   │   │       ├── ProcessReworkDetailResponse.java   # Single Process Instance Rework DTO
-    │   │   │       ├── ProcessConformanceResponse.java    # Process Conformance Detail DTO
-    │   │   │       ├── ConformanceAnalyticsSummaryResponse.java # Aggregate Conformance Summary DTO
-    │   │   │       ├── ProcessDeviationDto.java      # Deviation Detail DTO
-    │   │   │       └── StageDurationStats.java       # Repository Projection Record
+    │   │   │       ├── ProcessMetricsResponse.java
+    │   │   │       ├── StageMetricsResponse.java
+    │   │   │       ├── ProcessAnalyticsSummaryResponse.java
+    │   │   │       ├── ThroughputResponse.java
+    │   │   │       ├── BottleneckResponse.java
+    │   │   │       ├── ProcessVariantResponse.java
+    │   │   │       ├── ActivityReworkResponse.java
+    │   │   │       ├── ReworkAnalyticsSummaryResponse.java
+    │   │   │       ├── ProcessReworkDetailResponse.java
+    │   │   │       ├── ProcessConformanceResponse.java
+    │   │   │       ├── ConformanceAnalyticsSummaryResponse.java
+    │   │   │       ├── ProcessDeviationDto.java
+    │   │   │       └── StageDurationStats.java
     │   │   ├── controller/
     │   │   │   └── ProcessController.java            # Process Instance CRUD APIs (/api/v1/processes)
     │   │   ├── service/
     │   │   │   └── ProcessService.java               # State Transitions, Ingestion & Idempotency
     │   │   ├── kafka/
-    │   │   │   ├── ProcessEventConsumer.java         # @KafkaListener Consumer for Domain Events
+    │   │   │   ├── ProcessEventConsumer.java         # @KafkaListener Consumer with MDC & Observability
     │   │   │   ├── KafkaEventMapper.java             # Maps JSON Events to Entities & Steps
     │   │   │   ├── KafkaConsumerConfig.java          # Spring Kafka Ack Configuration
     │   │   │   └── model/
-    │   │   │       └── SupplyChainXDomainEventDto.java # Jackson DTO for Domain Event Payloads
+    │   │   │       └── SupplyChainXDomainEventDto.java
     │   │   ├── repository/
-    │   │   │   ├── ProcessInstanceRepository.java   # Spring Data JPA Repository for ProcessInstance
-    │   │   │   ├── ProcessEventRepository.java      # Spring Data JPA Repository for ProcessEvent
-    │   │   │   └── ProcessStepRepository.java       # Spring Data JPA Repository for ProcessStep
+    │   │   │   ├── ProcessInstanceRepository.java
+    │   │   │   ├── ProcessEventRepository.java
+    │   │   │   └── ProcessStepRepository.java
     │   │   ├── entity/
-    │   │   │   ├── ProcessInstance.java             # Indexed Process Instance Entity
-    │   │   │   ├── ProcessEvent.java                # Indexed Process Event Entity
-    │   │   │   └── ProcessStep.java                 # Indexed Process Step Entity
+    │   │   │   ├── ProcessInstance.java
+    │   │   │   ├── ProcessEvent.java
+    │   │   │   └── ProcessStep.java
     │   │   ├── dto/
     │   │   │   ├── ProcessInstanceResponseDto.java
     │   │   │   ├── ProcessInstanceDetailResponseDto.java
     │   │   │   ├── ProcessEventResponseDto.java
     │   │   │   ├── ProcessStepResponseDto.java
-    │   │   │   └── ErrorResponseDto.java
+    │   │   │   └── ErrorResponseDto.java            # Standardized RFC-Compliant Error Response
     │   │   └── exception/
     │   │       ├── ResourceNotFoundException.java
     │   │       └── GlobalExceptionHandler.java      # Centralized HTTP Exception Handler
     │   └── resources/
-    │       ├── application.yml                      # Production / PostgreSQL & Kafka Config
+    │       ├── application.yml                      # Production / PostgreSQL, Kafka, JWT & Logging Config
     │       └── application-test.yml                 # Fast In-Memory H2 Testing Config
     └── test/
         └── java/com/supplychainx/processservice/
-            ├── analytics/                           # Analytics Unit & Controller Tests
-            │   ├── ProcessAnalyticsServiceTests.java # Analytics Unit Tests (Metrics, Variants, Rework & Conformance)
-            │   └── ProcessAnalyticsControllerTests.java # WebMvcTest Controller Tests
+            ├── security/
+            │   └── SecurityAndObservabilityTests.java # 20 Comprehensive Security & Observability Tests
+            ├── analytics/
+            │   ├── ProcessAnalyticsServiceTests.java
+            │   └── ProcessAnalyticsControllerTests.java
             ├── repository/
-            │   └── ProcessRepositoryTests.java      # DataJpaTest for Entity Persistence & Queries
+            │   └── ProcessRepositoryTests.java
             ├── controller/
-            │   └── ProcessControllerTests.java      # WebMvcTest Controller Tests
+            │   └── ProcessControllerTests.java
             ├── service/
-            │   └── ProcessServiceTests.java         # Integration Tests for Event Ingestion
+            │   └── ProcessServiceTests.java
             └── kafka/
-                ├── KafkaEventMapperTests.java       # Unit Tests for Mapping Logic & Steps
-                └── ProcessEventConsumerTests.java   # Listener Execution Tests
+                ├── KafkaEventMapperTests.java
+                └── ProcessEventConsumerTests.java
 ```
 
 ---
 
-## v2.3 Process Conformance Analysis Engine
+## v2.4 Enterprise Security & Observability Specifications
 
-### 1. Definition & Expected Process Paths
-Process conformance analysis compares actual chronological process executions against expected normative process reference models.
-- **PRODUCT_LIFECYCLE Expected Path**:
-  `PRODUCT_CREATION → PRODUCT_UPDATE → PRODUCT_DELETION`
-- Designed to be extensible so additional process types/expected paths can be configured deterministically.
+### 1. Authentication & Role-Based Access Control (RBAC)
+- **Token Validation**: Stateless HMAC-SHA256 JWT validation matching C# backend secret key (`jwt.secret`), issuer (`SupplyChainX`), and audience (`SupplyChainXClients`).
+- **Role Mapping**:
+  - `Admin` / `ADMIN` / `ROLE_ADMIN` $\rightarrow$ `ROLE_ADMIN`
+  - `Operator` / `ANALYST` / `ROLE_ANALYST` $\rightarrow$ `ROLE_ANALYST`
+  - `Viewer` / `USER` / `ROLE_USER` $\rightarrow$ `ROLE_USER`
+- **Access Control Matrix**:
+  - Actuator Probes (`/actuator/health`, `/actuator/health/readiness`, `/actuator/health/liveness`, `/actuator/metrics`, `/actuator/prometheus`): `permitAll()`
+  - Analytics & Process APIs (`/api/v1/analytics/**`, `/api/v1/processes/**`): Authorized roles `ADMIN`, `ANALYST`, `USER`
+  - Admin Operations (`/api/v1/analytics/admin/**`, `/api/v1/admin/**`): `hasRole('ADMIN')`
+  - Unauthenticated requests: `401 Unauthorized`
+  - Insufficient privileges: `403 Forbidden`
 
-### 2. Status Classification & Conformance Score
-- **Classification**:
-  - `CONFORMANT`: Actual sequence matches expected path with zero deviations.
-  - `DEVIATED`: One or more deviations detected.
-- **Structural Conformance Score**:
-  $$\text{conformanceScore} = \min\left(1.0, \frac{\text{matchedExpectedActivities}}{\text{expectedActivities}}\right)$$
-  - Fully conformant process: `1.0`.
-  - Process missing one of 3 expected activities: `0.67`.
-  - Implementation-defined structural coverage score, not a formal process mining fitness/precision metric.
+### 2. Request Correlation & Structured Logging
+- **`CorrelationIdFilter`**: Extracts `X-Correlation-ID` header if present; generates UUID if missing; attaches `X-Correlation-ID` header to HTTP response.
+- **SLF4J MDC Context**: Sets `correlationId`, `processId`, and `eventId` in ThreadLocal MDC. Context is cleared in a `finally` block to prevent leaks.
+- **Log Pattern**:
+  `%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [service=process-service, correlationId=%X{correlationId:-none}, processId=%X{processId:-none}, eventId=%X{eventId:-none}] - %msg%n`
+- **Security**: Raw tokens, passwords, JWT secrets, and `Authorization` headers are never logged.
 
-### 3. Deviation Taxonomy & Detection Logic
+### 3. Global Error Handling
+Standardized error DTO schema returned across all exception types:
+```json
+{
+  "timestamp": "2026-09-23T04:23:19.736Z",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Full authentication is required to access this resource",
+  "path": "/api/v1/analytics/summary",
+  "correlationId": "4f322224-d0cf-488a-9b50-afd63b177970"
+}
+```
 
-| Deviation Type | Definition | Example Scenario |
-| :--- | :--- | :--- |
-| `MISSING_ACTIVITY` | An expected activity in the reference path was not executed. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → DELETE`<br>Deviation: Missing `PRODUCT_UPDATE` |
-| `UNEXPECTED_ACTIVITY` | An activity occurs that is not part of the expected path, or an unexpected repetition occurs. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → UPDATE → UPDATE → DELETE`<br>Deviation: Repeated `PRODUCT_UPDATE` |
-| `ORDER_VIOLATION` | An expected activity occurs, but out of the expected relative order. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → DELETE → UPDATE`<br>Deviation: `PRODUCT_UPDATE` after `PRODUCT_DELETION` |
-| `TERMINAL_ACTIVITY_VIOLATION` | An activity occurs after the expected terminal activity. | Expected: `CREATE → UPDATE → DELETE`<br>Actual: `CREATE → UPDATE → DELETE → UPDATE`<br>Deviation: `PRODUCT_UPDATE` at position 4 after terminal `PRODUCT_DELETION` |
+### 4. Actuator Health & Micrometer Metrics
+- **Health Probes**: Exposed at `/actuator/health/liveness` and `/actuator/health/readiness` without exposing credentials.
+- **Metrics Instruments**:
+  - `analytics.requests.total` (tags: `endpoint`, `method`, `status`)
+  - `analytics.conformance.requests.total` (tags: `status`)
+  - `analytics.variants.requests.total` (tags: `status`)
+  - `analytics.rework.requests.total` (tags: `status`)
+  - `process.event.processed.total` (tags: `topic`, `eventType`, `status`)
+  - `process.event.failures.total` (tags: `eventType`, `errorType`)
+  - `kafka.consumer.activity.total` (tags: `topic`, `status`)
 
 ---
 
-## API Endpoints & Filtering
+## API Endpoints & Authorization Rules
 
-| Method | Endpoint | Description | Query Parameters |
+| Method | Endpoint | Description | Authorization Requirement |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/analytics/processes/{id}` | Single process instance cycle-time & stage count | None |
-| `GET` | `/api/v1/analytics/processes/{id}/stages` | Chronological stage duration breakdown | None |
-| `GET` | `/api/v1/analytics/summary` | Aggregate summary (processes, cycle times, throughput) | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/throughput` | Process throughput over time range | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/bottlenecks` | Stage bottleneck analysis & duration contribution | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/variants` | List process variants ranked by occurrence count | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/variants/{variantKey}` | Get detailed metrics for a specific process variant | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/rework` | Aggregate rework summary & activity-level breakdown | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/rework/{processId}` | Instance-specific rework detail & repeated activities | None |
-| `GET` | `/api/v1/analytics/conformance` | Aggregate conformance metrics & deviation breakdown | `processType`, `from`, `to` |
-| `GET` | `/api/v1/analytics/conformance/{processId}` | Single process instance conformance analysis | None |
-
----
-
-## Example Process Scenarios & Verification Matrix
-
-| Scenario | Sequence | Status | Score | Deviation Types Reported |
-| :--- | :--- | :--- | :--- | :--- |
-| **A** | `CREATE → UPDATE → DELETE` | `CONFORMANT` | `1.0` | None |
-| **B** | `CREATE → UPDATE → UPDATE → DELETE` | `DEVIATED` | `1.0` | `UNEXPECTED_ACTIVITY` |
-| **C** | `CREATE → DELETE` | `DEVIATED` | `0.67` | `MISSING_ACTIVITY` |
-| **D** | `CREATE → DELETE → UPDATE` | `DEVIATED` | `1.0` | `TERMINAL_ACTIVITY_VIOLATION`, `ORDER_VIOLATION` |
-| **E** | `CREATE → UPDATE → DELETE → UPDATE` | `DEVIATED` | `1.0` | `TERMINAL_ACTIVITY_VIOLATION` |
+| `GET` | `/actuator/health` | Application health probe | Unprotected (`permitAll()`) |
+| `GET` | `/actuator/health/readiness` | Kubernetes readiness probe | Unprotected (`permitAll()`) |
+| `GET` | `/actuator/health/liveness` | Kubernetes liveness probe | Unprotected (`permitAll()`) |
+| `GET` | `/actuator/metrics` | Micrometer metrics index | Unprotected (`permitAll()`) |
+| `GET` | `/actuator/prometheus` | Prometheus metrics export | Unprotected (`permitAll()`) |
+| `GET` | `/api/v1/analytics/summary` | Aggregate analytics summary | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/throughput` | Process throughput metrics | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/bottlenecks` | Bottleneck analysis | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/variants` | Process variant analysis | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/variants/{variantKey}` | Variant detail by key | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/rework` | Aggregate rework summary | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/rework/{processId}` | Instance rework detail | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/conformance` | Aggregate conformance summary | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/conformance/{processId}` | Instance conformance detail | `ADMIN`, `ANALYST`, `USER` |
+| `GET` | `/api/v1/analytics/admin/summary` | System administrative summary | `ADMIN` only |
 
 ---
 
@@ -196,15 +218,17 @@ java -jar target/process-service-1.0.0-SNAPSHOT.jar --server.port=8081
 
 ## Verification & Benchmark Results
 
-- **Java Unit & Integration Test Suite**: `50/50 passed` (Analytics service logic, variant grouping, rework math, conformance scoring & deviation detection, repository queries, WebMvcTest controllers, Kafka consumers).
+- **Java Unit & Integration Test Suite**: `70/70 passed` (20 new security & observability tests covering authentication 401, authorization 403, admin access 200, JWT validation, correlation ID header propagation, MDC context, health probes, validation, error mapping, and Actuator metrics).
 - **C# ASP.NET Core Regression Suite**: `102/102 passed`.
-- **E2E Kafka → Spring Boot → PostgreSQL → Conformance REST API Verification**: Verified real domain events across all 5 test scenarios (A, B, C, D, E) via ASP.NET Core API (`/api/v1/products`) through Kafka into PostgreSQL.
-- **PostgreSQL vs REST API Verification**:
-  - Process A (`CREATE > UPDATE > DELETE`): `CONFORMANT`, `score = 1.0`, `deviations = 0`.
-  - Process B (`CREATE > UPDATE > UPDATE > DELETE`): `DEVIATED`, `score = 1.0`, `UNEXPECTED_ACTIVITY` (position 3).
-  - Process C (`CREATE > DELETE`): `DEVIATED`, `score = 0.67`, `MISSING_ACTIVITY` (`PRODUCT_UPDATE` at position 2).
-  - Process D (`CREATE > DELETE > UPDATE`): `DEVIATED`, `score = 1.0`, `TERMINAL_ACTIVITY_VIOLATION` & `ORDER_VIOLATION`.
-  - Process E (`CREATE > UPDATE > DELETE > UPDATE`): `DEVIATED`, `score = 1.0`, `TERMINAL_ACTIVITY_VIOLATION` (position 4).
+- **E2E Environment Verification**:
+  - Unauthenticated Request (`/api/v1/analytics/summary`): Returned `401 Unauthorized` with `X-Correlation-ID` header and standardized JSON body.
+  - Authenticated Request with C# JWT Token: Returned `200 OK` with full process analytics data.
+  - Admin Endpoint Request (`/api/v1/analytics/admin/summary`): Returned `200 OK` for `Admin` role; returned `403 Forbidden` for non-admin tokens.
+  - Health & Readiness Probes (`/actuator/health/readiness`, `/liveness`): Returned `200 OK` with `status: UP` without credentials.
+  - Actuator Metrics (`/actuator/metrics/analytics.requests.total`): Verified counter increment and low-cardinality tags.
+- **Latency / Performance**: Observed local latency for authenticated endpoints measured $\approx 13.7\text{ ms} - 15.3\text{ ms}$ per request.
+- **Security Audit**: Zero hardcoded secrets, zero raw JWT/authorization header logging, zero stack trace leakage in API responses.
+tion 4).
 - **Aggregate Summary Verification**:
   - `totalProcessesAnalyzed`: 12
   - `conformantProcessCount`: 5

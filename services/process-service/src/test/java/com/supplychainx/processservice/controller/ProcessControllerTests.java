@@ -26,8 +26,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 @WebMvcTest(ProcessController.class)
 @ActiveProfiles("test")
+@WithMockUser(roles = "ANALYST")
 class ProcessControllerTests {
 
     @Autowired
@@ -38,6 +54,9 @@ class ProcessControllerTests {
 
     @MockBean
     private ProcessService processService;
+
+    @MockBean
+    private com.supplychainx.processservice.security.JwtTokenProvider jwtTokenProvider;
 
     @Test
     void shouldReturnAllProcesses() throws Exception {
@@ -147,6 +166,7 @@ class ProcessControllerTests {
         when(processService.createProcess(any(CreateProcessInstanceRequestDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/processes")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())

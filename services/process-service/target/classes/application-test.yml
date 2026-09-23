@@ -19,3 +19,30 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
+
+jwt:
+  secret: SupplyChainX_Super_Secret_Jwt_Signing_Key_2026_Enterprise_Secure!
+  issuer: SupplyChainX
+  audience: SupplyChainXClients
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    probes:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.supplychainx.processservice: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [service=process-service, correlationId=%X{correlationId:-none}, processId=%X{processId:-none}, eventId=%X{eventId:-none}] - %msg%n"
+

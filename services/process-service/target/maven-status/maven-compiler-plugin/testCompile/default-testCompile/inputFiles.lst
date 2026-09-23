@@ -5,4 +5,5 @@
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/kafka/KafkaEventMapperTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/kafka/ProcessEventConsumerTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/repository/ProcessRepositoryTests.java
+/Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/security/SecurityAndObservabilityTests.java
 /Users/sarathpatti/Documents/SupplyChainX/services/process-service/src/test/java/com/supplychainx/processservice/service/ProcessServiceTests.java

@@ -39,11 +39,30 @@ process:
       warehouse-events: ${KAFKA_TOPIC_WAREHOUSE:supplychainx.warehouse.events}
       inventory-events: ${KAFKA_TOPIC_INVENTORY:supplychainx.inventory.events}
 
+jwt:
+  secret: ${JWT_SECRET:SupplyChainX_Super_Secret_Jwt_Signing_Key_2026_Enterprise_Secure!}
+  issuer: ${JWT_ISSUER:SupplyChainX}
+  audience: ${JWT_AUDIENCE:SupplyChainXClients}
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+  health:
+    probes:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.supplychainx.processservice: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [service=process-service, correlationId=%X{correlationId:-none}, processId=%X{processId:-none}, eventId=%X{eventId:-none}] - %msg%n"
+

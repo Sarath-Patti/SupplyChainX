@@ -28,6 +28,9 @@ class ProcessEventConsumerTests {
     private ProcessService processService;
 
     @Mock
+    private com.supplychainx.processservice.metrics.ProcessAnalyticsMetrics metrics;
+
+    @Mock
     private Acknowledgment ack;
 
     private ProcessEventConsumer consumer;
@@ -35,7 +38,7 @@ class ProcessEventConsumerTests {
 
     @BeforeEach
     void setUp() {
-        consumer = new ProcessEventConsumer(processService);
+        consumer = new ProcessEventConsumer(processService, metrics);
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }
